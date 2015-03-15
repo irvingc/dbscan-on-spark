@@ -78,11 +78,14 @@ object SpaceSplitter {
 
     allBoxesWith(boundary, boxSize)
       .foldLeft((Box.empty, Box.empty, Long.MaxValue))({
-        case ((s1, s2, minCost), box) => ((cost: Long) => if (cost < minCost) {
-          (box, complement(box, boundary), cost)
-        } else {
-          (s1, s2, minCost)
-        })(cost(box, boundary, tree))
+        case ((s1, s2, minCost), box) =>
+          (
+            (cost: Long) =>
+              if (cost < minCost) {
+                (box, complement(box, boundary), cost)
+              } else {
+                (s1, s2, minCost)
+              })(cost(box, boundary, tree))
       })
 
   def complement(box: Box, boundary: Box): Box =
