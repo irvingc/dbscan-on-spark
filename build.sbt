@@ -16,7 +16,6 @@ lazy val root = (project in file(".")).
     ),
 
     publishMavenStyle := true,
-    pomIncludeRepository := { _ => false },
     pomExtra :=
       <scm>
         <url>git@github.com:irvingc/dbscan-on-spark.git</url>
