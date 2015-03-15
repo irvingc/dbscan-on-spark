@@ -12,7 +12,7 @@ DBSCAN on Spark is published to [bintray](https://bintray.com/). If you use SBT 
 can include SBT in your application adding the following to your build.sbt:
 
 ```
-resolvers += "bintray/irvingc" at "https://bintray.com/irvingc/maven"
+resolvers += "bintray/irvingc" at "http://dl.bintray.com/irvingc/maven"
 
 libraryDependencies += "com.irvingc.spark" %% "dbscan" % "0.1.0"
 ```
