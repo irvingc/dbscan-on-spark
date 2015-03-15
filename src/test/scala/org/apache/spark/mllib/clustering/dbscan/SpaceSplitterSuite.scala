@@ -105,11 +105,11 @@ class SpaceSplitterSuite extends FunSuite with Matchers {
     val partitions = SpaceSplitter.findSplits(sections, 9, 1)
 
     val expected = List(
-        Box(1, 2, 3, 3), 
-        Box(0, 2, 1, 3), 
-        Box(0, 1, 3, 2), 
-        Box(2, 0, 3, 1), 
-        Box(0, 0, 2, 1))
+      Box(1, 2, 3, 3),
+      Box(0, 2, 1, 3),
+      Box(0, 1, 3, 2),
+      Box(2, 0, 3, 1),
+      Box(0, 0, 2, 1))
 
     partitions should equal(expected)
 

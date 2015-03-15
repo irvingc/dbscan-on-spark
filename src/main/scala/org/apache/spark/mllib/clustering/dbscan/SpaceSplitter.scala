@@ -52,7 +52,7 @@ object SpaceSplitter {
   }
 
   def toRectangle(b: Box, i: Int): String =
-    s"Rectangle((${b.x},${b.y}), ${b.x2 - b.x}, ${b.y2 - b.y}, edgecolor=colors[$i], fc=colors[$i]"
+    s"Rectangle((${b.x},${b.y}), ${b.x2 - b.x}, ${b.y2 - b.y}, edgecolor=colors[$i], fc=colors[$i]),"
 
   def toRTree(boxesWithCount: Seq[BoxWithCount]): RTree[Int] =
     RTree(boxesWithCount.map(toEntry): _*)
@@ -69,13 +69,13 @@ object SpaceSplitter {
     ((boundaryCount / 2) - spaceCount).abs
   }
 
-  def pointsinBox(space: Box, tree: RTree[Int]): Long =
-    tree.foldSearch(space, 0)({
+  def pointsinBox(space: Box, tree: RTree[Int]): Long = {
+    tree.search(space).foldLeft(0)({
       case (accumulator, entry) => accumulator + entry.value
     })
+  }
 
-  def costBasedBinarySplit(boundary: Box, tree: RTree[Int], boxSize: Float): (Box, Box, Long) =
-
+  def costBasedBinarySplit(boundary: Box, tree: RTree[Int], boxSize: Float): (Box, Box, Long) = 
     allBoxesWith(boundary, boxSize)
       .foldLeft((Box.empty, Box.empty, Long.MaxValue))({
         case ((s1, s2, minCost), box) =>
@@ -87,6 +87,7 @@ object SpaceSplitter {
                 (s1, s2, minCost)
               })(cost(box, boundary, tree))
       })
+ 
 
   def complement(box: Box, boundary: Box): Box =
     if (box.x == boundary.x && box.y == boundary.y) {
