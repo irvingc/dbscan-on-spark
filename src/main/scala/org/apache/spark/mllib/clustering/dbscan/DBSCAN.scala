@@ -55,8 +55,12 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
           (acc1, acc2) => acc1 + acc2)
         .collect()
 
+
     val dataSize = projections.count()
     val partitionSize = dataSize / parallelism
+
+    logDebug(s"Partitionsize $partitionSize")
+    logDebug(s"Datasize $dataSize")
 
     val localPartitionsWithMargins = SpaceSplitter
       .findSplits(localBoxesWithCount, partitionSize, boxSize)
@@ -89,6 +93,8 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
       .mapPartitions(localDBSCAN, true)
       .flatMapValues(p => p)
       .cache
+
+    log.info("Local DBSCAN done")
 
     val ap = clustered.filter({
       case (id, vector) => vector.isCore && vector.classification == MarginClassifier.Inner
