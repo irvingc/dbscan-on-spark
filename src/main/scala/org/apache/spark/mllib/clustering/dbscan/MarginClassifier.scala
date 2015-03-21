@@ -18,16 +18,15 @@ package org.apache.spark.mllib.clustering.dbscan
 
 import archery.Box
 import archery.Point
+import archery.Point
 
 object MarginClassifier extends Enumeration {
 
   type Class = Value
   val Inner, Outer, Belonging, NotBelonging = Value
 
-  def classify(projected: ProjectedVector, margins: Margins): Class =
-    projected match {
-      case (point, vector) => classify(point, margins)
-    }
+  def classify(dbscanPoint: DBSCANPoint, margins: Margins): Class =
+    classify(dbscanPoint.toArcheryPoint(), margins)
 
   def classify(point: Point, margins: Margins): Class = margins match {
     case (inner, main, outer) => {

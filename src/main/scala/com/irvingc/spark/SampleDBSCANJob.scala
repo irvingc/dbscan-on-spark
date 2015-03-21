@@ -21,31 +21,44 @@ import org.apache.spark.SparkContext
 import org.apache.spark.mllib.clustering.dbscan.DBSCAN
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.SparkConf
+import org.apache.spark.Logging
+import org.slf4j.LoggerFactory
+import org.apache.spark.storage.StorageLevel
+import org.apache.spark.mllib.clustering.dbscan.DBSCANPoint
+import org.apache.spark.mllib.clustering.dbscan.LabeledVector
 
 object SampleDBSCANJob {
+
+  val log = LoggerFactory.getLogger(SampleDBSCANJob.getClass)
 
   def main(args: Array[String]) {
 
     if (args.length < 3) {
       System.err.println("You must pass the arguments: <src file> <dest file> <parallelism>")
+      System.exit(1)
     }
 
-    val (src, dest, parallelism) = (args(0), args(1), args(2).toInt)
+    val (src, dest, parallelism, eps, minPoints) = (args(0), args(1), args(2).toInt, args(3).toFloat, args(4).toInt)
 
-    val conf = new SparkConf().setAppName("DBSCAN Test")
+    val conf = new SparkConf().setAppName("Sample DBSCAN Job")
+    conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     val sc = new SparkContext(conf)
 
     val data = sc.textFile(src)
 
-    val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble))).cache()
+    val parsedData = data.map(DBSCANPoint.fromString)
+
+    log.info(s"EPS: $eps minPoints: $minPoints")
 
     val labeled = DBSCAN.fit(
-      eps = 0.3F,
-      minPoints = 10,
+      eps = eps,
+      minPoints = minPoints,
       data = parsedData,
       parallelism = parallelism)
 
     labeled.saveAsTextFile(dest)
+    log.info("Stopping Spark Context...")
+    sc.stop()
 
   }
 }

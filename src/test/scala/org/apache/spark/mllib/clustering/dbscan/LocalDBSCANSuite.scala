@@ -30,7 +30,7 @@ class LocalDBSCANSuite extends FunSuite with Matchers {
 
     val labeled = new LocalDBSCAN(eps = 0.3F, minPoints = 10)
       .fit(getRawData("scaled_data.csv"))
-      .map(l => (l.point, corresponding(l.localLabel)))
+      .map(l => ((l.point.x.toFloat, l.point.y.toFloat), corresponding(l.label)))
       .toMap
 
     val expected = getExpectedData("labeled_data.csv")
@@ -63,10 +63,7 @@ class LocalDBSCANSuite extends FunSuite with Matchers {
       .fromFile(getFile(file))
       .getLines()
       .map(s => {
-
-        val vector = Vectors.dense(s.split(',').map(_.toDouble))
-        new LabeledVector(DBSCAN.toProjection(vector), 1, MarginClassifier.Belonging)
-
+        new LabeledVector(DBSCANPoint.fromString(s), MarginClassifier.Belonging)
       })
       .toList
 

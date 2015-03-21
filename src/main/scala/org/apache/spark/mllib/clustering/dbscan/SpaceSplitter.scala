@@ -38,9 +38,14 @@ object SpaceSplitter {
     topartition match {
       case head :: rest => {
         if (pointsinBox(head, tree) > limit) {
+
           costBasedBinarySplit(head, tree, boxSize) match {
             case (s1, s2, _) =>
-              partitionr(s1 :: s2 :: rest, partitions, tree, limit, boxSize)
+              if (s1 == head) {
+                partitionr(rest, head :: partitions, tree, limit, boxSize)
+              } else {
+                partitionr(s1 :: s2 :: rest, partitions, tree, limit, boxSize)
+              }
           }
         } else {
           partitionr(rest, head :: partitions, tree, limit, boxSize)
@@ -52,7 +57,7 @@ object SpaceSplitter {
   }
 
   def toRectangle(b: Box, i: Int): String =
-    s"Rectangle((${b.x},${b.y}), ${b.x2 - b.x}, ${b.y2 - b.y}, edgecolor=colors[$i], fc=colors[$i]),"
+    s"Rectangle((${b.x},${b.y}),${b.x2 - b.x},${b.y2 - b.y},edgecolor=colors[$i],fc=colors[$i]),"
 
   def toRTree(boxesWithCount: Seq[BoxWithCount]): RTree[Int] =
     RTree(boxesWithCount.map(toEntry): _*)
@@ -75,7 +80,7 @@ object SpaceSplitter {
     })
   }
 
-  def costBasedBinarySplit(boundary: Box, tree: RTree[Int], boxSize: Float): (Box, Box, Long) = 
+  def costBasedBinarySplit(boundary: Box, tree: RTree[Int], boxSize: Float): (Box, Box, Long) =
     allBoxesWith(boundary, boxSize)
       .foldLeft((Box.empty, Box.empty, Long.MaxValue))({
         case ((s1, s2, minCost), box) =>
@@ -87,7 +92,6 @@ object SpaceSplitter {
                 (s1, s2, minCost)
               })(cost(box, boundary, tree))
       })
- 
 
   def complement(box: Box, boundary: Box): Box =
     if (box.x == boundary.x && box.y == boundary.y) {

@@ -1,8 +1,8 @@
 lazy val root = (project in file(".")).
   settings(
     organization := "com.irvingc.spark",
-    version := "0.1.0",
-    name := "dbscan",
+    version := "0.2.0-SNAPSHOT",
+    name := "dbscan-on-spark",
     homepage := Some(url("http://www.irvingc.com/dbscan-on-spark")),
     description := "An implementation of DBSCAN runing on top of Apache Spark",
     licenses += ("Apache-2.0" -> url( "http://www.apache.org/licenses/LICENSE-2.0.html")),

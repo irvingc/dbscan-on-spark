@@ -22,7 +22,6 @@ import archery.Box
 
 package object dbscan {
 
-  type ProjectedVector = (Point, Vector)
   type BoxWithCount = (Box, Int)
   type Margins = (Box, Box, Box)
   type Mapping = ((Int, Int), (Int, Int))

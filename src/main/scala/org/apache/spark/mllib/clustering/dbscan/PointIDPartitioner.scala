@@ -24,7 +24,7 @@ class PointIDPartitioner(partitions: Int) extends HashPartitioner(partitions) {
 
   override def getPartition(key: Any): Int = key match {
     case (p, i) => (p, i) match {
-      case (p: Point, partition: Int) => partition
+      case (p: DBSCANPoint, partition: Int) => partition
     }
     case _ => super.getPartition(key)
   }

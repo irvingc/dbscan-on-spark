@@ -29,12 +29,12 @@ import archery.Point
 
 object DBSCANSuite {
 
-  def toPointLabel(l: LabeledVector) = (l.point, l.label)
+  def toPointLabel(l: LabeledVector) = ((l.point.x.toFloat, l.point.y.toFloat), l.label)
 
   def stringToPointLabel(s: String) = arrayToPointLabel(s.split(','))
 
   def arrayToPointLabel(array: Array[String]) =
-    (Point(array(0).toFloat, array(1).toFloat), array(3).toFloat.intValue())
+    ((array(0).toFloat, array(1).toFloat), array(3).toFloat.intValue())
 }
 
 class DBSCANSuite extends FunSuite with MLlibTestSparkContext with Matchers {
@@ -46,7 +46,7 @@ class DBSCANSuite extends FunSuite with MLlibTestSparkContext with Matchers {
 
     val data = sc.textFile(testData.getFile)
 
-    val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble))).cache()
+    val parsedData = data.map(DBSCANPoint.fromString)
 
     val clustered = DBSCAN.fit(eps = 0.3F, minPoints = 10, data = parsedData, parallelism = 5)
 
@@ -54,6 +54,7 @@ class DBSCANSuite extends FunSuite with MLlibTestSparkContext with Matchers {
 
     val expected = sc.textFile(expectedData.getFile)
       .map(DBSCANSuite.stringToPointLabel)
+      .map({ case (key, value) => (key, if (value == 4) 3 else value) })
       .collectAsMap()
 
     labeled.foreach {

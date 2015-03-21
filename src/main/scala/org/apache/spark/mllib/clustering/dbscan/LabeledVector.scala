@@ -17,20 +17,16 @@
 package org.apache.spark.mllib.clustering.dbscan
 
 class LabeledVector(
-  projected: ProjectedVector,
-  val partition: Int,
+  val point: DBSCANPoint,
   val classification: MarginClassifier.Class) extends Serializable {
 
-  val (point, vector) = projected
-
   var visited = false
-  var localLabel = Unlabeled
   var isCore = false
   var isBorder = false
   var label = Unlabeled
 
   override def toString(): String = {
-    List(point.x, point.y, partition, label, localLabel).mkString(",")
+    s"${point.x},${point.y},$label"
   }
 
 }

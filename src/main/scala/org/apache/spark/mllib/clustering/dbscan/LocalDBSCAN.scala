@@ -17,12 +17,15 @@
 package org.apache.spark.mllib.clustering.dbscan
 
 import scala.collection.mutable.ListBuffer
+import org.apache.spark.Logging
 
-class LocalDBSCAN(eps: Double, minPoints: Int) {
+class LocalDBSCAN(eps: Double, minPoints: Int) extends Logging {
 
   val minDistanceSquared = eps * eps
 
   def fit(vectors: List[LabeledVector]): List[LabeledVector] = {
+    
+    logInfo("About to start fitting")
 
     var cluster = Unlabeled
 
@@ -34,15 +37,18 @@ class LocalDBSCAN(eps: Double, minPoints: Int) {
         val neighbors = findNeighbors(vector, vectors)
 
         if (neighbors.length < minPoints) {
-          vector.localLabel = Noise
+          vector.label = Noise
         } else {
           cluster += 1
           expandCluster(vector, neighbors, vectors, cluster)
         }
 
       }
+      logDebug(s"iterating cluster:$cluster")
 
     })
+
+    logInfo("done...")
 
     vectors
 
@@ -61,7 +67,7 @@ class LocalDBSCAN(eps: Double, minPoints: Int) {
     cluster: Int): Unit = {
 
     vector.isCore = true
-    vector.localLabel = cluster
+    vector.label = cluster
 
     val neighbors = inneighbors.to[ListBuffer]
 
@@ -82,8 +88,8 @@ class LocalDBSCAN(eps: Double, minPoints: Int) {
 
       }
 
-      if (neighbor.localLabel == Unlabeled) {
-        neighbor.localLabel = cluster
+      if (neighbor.label == Unlabeled) {
+        neighbor.label = cluster
       }
 
     })
