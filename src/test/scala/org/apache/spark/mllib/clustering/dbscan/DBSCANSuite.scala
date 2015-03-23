@@ -16,16 +16,10 @@
  */
 package org.apache.spark.mllib.clustering.dbscan
 
-import java.util.regex.PatternSyntaxException
-
 import org.apache.spark.SparkContext.rddToPairRDDFunctions
-import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.mllib.util.MLlibTestSparkContext
-import org.scalatest.Finders
 import org.scalatest.FunSuite
 import org.scalatest.Matchers
-
-import archery.Point
 
 object DBSCANSuite {
 

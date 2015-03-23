@@ -38,10 +38,14 @@ object SampleDBSCANJob {
       System.exit(1)
     }
 
-    val (src, dest, parallelism, eps, minPoints) = (args(0), args(1), args(2).toInt, args(3).toFloat, args(4).toInt)
+    val (src, dest, parallelism, eps, minPoints) = 
+      (args(0), args(1), args(2).toInt, args(3).toFloat, args(4).toInt)
+    
+    val destOut = dest.split('/').last
 
-    val conf = new SparkConf().setAppName("Sample DBSCAN Job")
+    val conf = new SparkConf().setAppName(s"DBSCAN(eps=$eps, minPoints=$minPoints) -> $destOut")
     conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+    // conf.set("spark.storage.memoryFraction", "0.1")
     val sc = new SparkContext(conf)
 
     val data = sc.textFile(src)

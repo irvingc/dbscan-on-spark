@@ -16,9 +16,8 @@
  */
 package org.apache.spark.mllib.clustering
 
-import org.apache.spark.mllib.linalg.Vector
-import archery.Point
-import archery.Box
+import org.apache.spark.mllib.clustering.dbscan.Box
+import org.apache.spark.mllib.clustering.dbscan.LabeledVector
 
 package object dbscan {
 

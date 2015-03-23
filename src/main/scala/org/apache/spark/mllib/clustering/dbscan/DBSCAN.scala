@@ -18,17 +18,15 @@ package org.apache.spark.mllib.clustering.dbscan
 
 import org.apache.spark.Logging
 import org.apache.spark.SparkContext.rddToPairRDDFunctions
-import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
-import archery.Box
-import archery.Point
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.HashPartitioner
-import org.apache.spark.broadcast.Broadcast
 
 object DBSCAN {
 
-  def fit(eps: Float, minPoints: Int, data: RDD[DBSCANPoint], parallelism: Int): RDD[LabeledVector] =
+  def fit(eps: Float,
+          minPoints: Int,
+          data: RDD[DBSCANPoint],
+          parallelism: Int): RDD[LabeledVector] =
     new DBSCAN(eps, minPoints, parallelism).fit(data)
 
   def fit(eps: Float, minPoints: Int, data: RDD[DBSCANPoint]): RDD[LabeledVector] =
@@ -62,10 +60,14 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
     logDebug(s"Partitionsize $partitionSize")
     logDebug(s"Datasize $dataSize")
 
-    val localPartitionsWithMargins = SpaceSplitter
-      .findSplits(localBoxesWithCount, partitionSize, boxSize)
-      .map(toMargins)
-      .zipWithIndex
+    val localPartitions = SpaceSplitter.findSplits(localBoxesWithCount, partitionSize, boxSize)
+    localPartitions.foreach({
+      case (b, c) => logInfo(SpaceSplitter.toRectangle(b, 0) + " # count:" + c)
+    })
+
+    val localPartitionsWithMargins = localPartitions.map({
+      case (b, _) => toMargins(b)
+    }).zipWithIndex
 
     val foundLocalPartitions = localPartitionsWithMargins.length
     logDebug(s"Found: $foundLocalPartitions")
@@ -88,13 +90,13 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
             case (id, classification) => classification != MarginClassifier.NotBelonging
           })
           .map({
-            case (id, classification) => (id, (p, id, classification))
+            case (id, classification) => (id, new LabeledVector(p, classification))
           })
       })
       .groupByKey(localPartitionsWithMargins.length)
-      .persist(StorageLevel.DISK_ONLY)
+      .persist(StorageLevel.MEMORY_AND_DISK_SER)
 
-    val duplicatedCount = duplicated.count()
+    val duplicatedCount = duplicated.keys.count()
     logInfo(s"After duplication $duplicatedCount")
 
     val clustered = duplicated.flatMapValues(localDBSCAN)
@@ -103,33 +105,28 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
     val clusteredCount = clustered.count()
     logInfo(s"After clustering: $clusteredCount")
 
-    val ap = clustered.filter({
-      case (id, vector) => vector.isCore && vector.classification == MarginClassifier.Inner
-    })
-
-    val bp = clustered.filter({
-      case (id, vector) =>
-        (vector.isCore || vector.isBorder) &&
-          vector.classification == MarginClassifier.Outer
-    })
-
-    val apWithId = ap.flatMap({
-      case (id, vector) => if (adjacencies.value.contains(id)) {
-        adjacencies.value(id).map(otherid => {
-          ((id, otherid), vector)
-        })
-      } else {
-        List()
-      }
-    })
-
-    val bpWithId = bp.flatMap({
-      case (id, vector) => adjacencies.value.getOrElse(id, List()).map(otherId => {
-        ((otherId, id), vector)
+    val ap = clustered
+      .filter({
+        case (id, vector) =>
+          vector.isCore && vector.classification == MarginClassifier.Inner &&
+            adjacencies.value.contains(id)
       })
-    })
+      .flatMap({
+        case (id, vector) => adjacencies.value(id).map(other => ((id, other), vector))
+      })
 
-    val localIntersections = apWithId.cogroup(bpWithId)
+    val bp = clustered
+      .filter({
+        case (id, vector) =>
+          (vector.isCore || vector.isBorder) &&
+            vector.classification == MarginClassifier.Outer &&
+            adjacencies.value.contains(id)
+      })
+      .flatMap({
+        case (id, vector) => adjacencies.value(id).map(other => ((other, id), vector))
+      })
+
+    val localIntersections = ap.cogroup(bp)
       .flatMapValues({
         case (aps, bps) => aps.flatMap(aentry => {
           bps
@@ -139,7 +136,8 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
       })
       .distinct()
       .map({
-        case ((apartition, bpartition), (alabel, blabel)) => ((apartition, alabel), (bpartition, blabel))
+        case ((apartition, bpartition), (alabel, blabel)) =>
+          ((apartition, alabel), (bpartition, blabel))
       })
       .collect()
 
@@ -178,6 +176,7 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
 
     logDebug("Global Cluster IDs")
     localGlobalClusterIds.foreach(id => logDebug(id.toString()))
+    logInfo(s"Total Clusters: ${localGlobalClusterIds.size}")
 
     val globalClusterIds = vectors.context.broadcast(localGlobalClusterIds)
 
@@ -187,7 +186,8 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
           if (MarginClassifier.isInterior(vector.classification)) {
             ((vector.point, partition), (partition, vector))
           } else {
-            ((vector.point, findPartitionContaining(vector.point.toArcheryPoint(), partitions.value)), (partition, vector))
+            ((vector.point, findPartitionContaining(vector.point, partitions.value)),
+              (partition, vector))
           }
       })
       .groupByKey(new PointIDPartitioner(localPartitionsWithMargins.length))
@@ -224,10 +224,9 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
             })
 
       })
-
   }
 
-  def findPartitionContaining(point: Point, partitions: List[(Margins, Int)]): Int =
+  def findPartitionContaining(point: DBSCANPoint, partitions: List[(Margins, Int)]): Int =
     partitions
       .filter({
         case (margins, _) => margins match {
@@ -269,13 +268,8 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
     })
   }
 
-  def localDBSCAN(points: Iterable[(DBSCANPoint, Int, MarginClassifier.Class)]) = {
-    new LocalDBSCAN(eps, minPoints).fit(
-      points.map({
-        case (point, partition, marginclass) => {
-          new LabeledVector(point, marginclass)
-        }
-      }).toList)
+  def localDBSCAN(points: Iterable[LabeledVector]): TraversableOnce[LabeledVector] = {
+    new LocalDBSCAN(eps, minPoints).fit(points)
   }
 
   def toMargins(box: Box): Margins =

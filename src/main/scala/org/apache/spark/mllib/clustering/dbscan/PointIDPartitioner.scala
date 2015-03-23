@@ -16,8 +16,6 @@
  */
 package org.apache.spark.mllib.clustering.dbscan
 
-import org.apache.spark.Partitioner
-import archery.Point
 import org.apache.spark.HashPartitioner
 
 class PointIDPartitioner(partitions: Int) extends HashPartitioner(partitions) {

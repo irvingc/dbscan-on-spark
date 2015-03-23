@@ -16,10 +16,11 @@
  */
 package org.apache.spark.mllib.clustering.dbscan
 
-import org.scalatest.FunSuite
-import scala.io.Source
-import org.apache.spark.mllib.linalg.Vectors
 import java.net.URI
+
+import scala.io.Source
+
+import org.scalatest.FunSuite
 import org.scalatest.Matchers
 
 class LocalDBSCANSuite extends FunSuite with Matchers {

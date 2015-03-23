@@ -16,39 +16,49 @@
  */
 package org.apache.spark.mllib.clustering.dbscan
 
-import archery.Box
-import archery.RTree
-import archery.Entry
-
 object SpaceSplitter {
 
   def findSplits(boxesWithCount: Seq[BoxWithCount], limit: Long, boxSize: Float) =
-    partition(toRTree(boxesWithCount), limit, boxSize)
+    partition(boxesWithCount, limit, boxSize)
 
-  def partition(tree: RTree[Int], limit: Long, boxSize: Float) =
-    partitionr(List(tree.root.box), List[Box](), tree, limit, boxSize)
+  def partition(allBoxes: Seq[BoxWithCount], limit: Long, boxSize: Float) =
+    partitionr(List(findBoundingBox(allBoxes)), List[BoxWithCount](), allBoxes, limit, boxSize)
+
+  def findBoundingBox(boxes: Seq[BoxWithCount]): Box = {
+
+    val (x, y, x2, y2) = boxes
+      .foldLeft((Double.MaxValue, Double.MaxValue, Double.MinValue, Double.MinValue))(
+        (acc, box) => acc match {
+          case (x, y, x2, y2) => {
+            (x.min(box._1.x), y.min(box._1.y), x2.max(box._1.x2), y2.max(box._1.y2))
+          }
+
+        })
+
+    Box(x, y, x2, y2)
+  }
 
   def partitionr(
     topartition: List[Box],
-    partitions: List[Box],
-    tree: RTree[Int],
+    partitions: List[BoxWithCount],
+    all: Seq[BoxWithCount],
     limit: Long,
-    boxSize: Float): List[Box] = {
+    boxSize: Float): List[BoxWithCount] = {
 
     topartition match {
       case head :: rest => {
-        if (pointsinBox(head, tree) > limit) {
+        if (pointsinBox(head, all) > limit) {
 
-          costBasedBinarySplit(head, tree, boxSize) match {
-            case (s1, s2, _) =>
+          costBasedBinarySplit(head, all, boxSize) match {
+            case (s1, s2, c) =>
               if (s1 == head) {
-                partitionr(rest, head :: partitions, tree, limit, boxSize)
+                partitionr(rest, (s1, pointsinBox(s1, all)) :: partitions, all, limit, boxSize)
               } else {
-                partitionr(s1 :: s2 :: rest, partitions, tree, limit, boxSize)
+                partitionr(s1 :: s2 :: rest, partitions, all, limit, boxSize)
               }
           }
         } else {
-          partitionr(rest, head :: partitions, tree, limit, boxSize)
+          partitionr(rest, (head, pointsinBox(head, all)) :: partitions, all, limit, boxSize)
         }
 
       }
@@ -59,38 +69,33 @@ object SpaceSplitter {
   def toRectangle(b: Box, i: Int): String =
     s"Rectangle((${b.x},${b.y}),${b.x2 - b.x},${b.y2 - b.y},edgecolor=colors[$i],fc=colors[$i]),"
 
-  def toRTree(boxesWithCount: Seq[BoxWithCount]): RTree[Int] =
-    RTree(boxesWithCount.map(toEntry): _*)
-
-  def toEntry(boxWithCount: BoxWithCount): Entry[Int] = boxWithCount match {
-    case (box, count) => Entry(box, count)
-  }
-
-  def cost(space: Box, boundary: Box, tree: RTree[Int]): Long = {
-    val spaceCount = pointsinBox(space, tree)
-
-    val boundaryCount = pointsinBox(boundary, tree)
-
+  def cost(space: Box, boundary: Box, boxes: Seq[BoxWithCount]): Int = {
+    val spaceCount = pointsinBox(space, boxes)
+    val boundaryCount = pointsinBox(boundary, boxes)
     ((boundaryCount / 2) - spaceCount).abs
   }
 
-  def pointsinBox(space: Box, tree: RTree[Int]): Long = {
-    tree.search(space).foldLeft(0)({
-      case (accumulator, entry) => accumulator + entry.value
-    })
+  def pointsinBox(space: Box, boxes: Seq[BoxWithCount]): Int = {
+    boxes
+      .filter({ case (b, _) => space.contains(b) })
+      .foldLeft(0)(
+        (acc, b) => b._2 + acc)
   }
 
-  def costBasedBinarySplit(boundary: Box, tree: RTree[Int], boxSize: Float): (Box, Box, Long) =
+  def costBasedBinarySplit(
+      boundary: Box, 
+      boxes: Seq[BoxWithCount], 
+      boxSize: Float): (Box, Box, Int) =
     allBoxesWith(boundary, boxSize)
-      .foldLeft((Box.empty, Box.empty, Long.MaxValue))({
+      .foldLeft((Box.empty, Box.empty, Int.MaxValue))({
         case ((s1, s2, minCost), box) =>
           (
-            (cost: Long) =>
+            (cost: Int) =>
               if (cost < minCost) {
                 (box, complement(box, boundary), cost)
               } else {
                 (s1, s2, minCost)
-              })(cost(box, boundary, tree))
+              })(cost(box, boundary, boxes))
       })
 
   def complement(box: Box, boundary: Box): Box =

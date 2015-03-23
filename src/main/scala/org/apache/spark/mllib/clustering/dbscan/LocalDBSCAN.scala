@@ -16,16 +16,17 @@
  */
 package org.apache.spark.mllib.clustering.dbscan
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Queue
+
 import org.apache.spark.Logging
 
 class LocalDBSCAN(eps: Double, minPoints: Int) extends Logging {
 
   val minDistanceSquared = eps * eps
 
-  def fit(vectors: List[LabeledVector]): List[LabeledVector] = {
-    
-    logInfo("About to start fitting")
+  def fit(vectors: Iterable[LabeledVector]): Iterable[LabeledVector] = {
+
+    logInfo(s"About to start fitting")
 
     var cluster = Unlabeled
 
@@ -36,7 +37,7 @@ class LocalDBSCAN(eps: Double, minPoints: Int) extends Logging {
 
         val neighbors = findNeighbors(vector, vectors)
 
-        if (neighbors.length < minPoints) {
+        if (neighbors.size < minPoints) {
           vector.label = Noise
         } else {
           cluster += 1
@@ -44,7 +45,6 @@ class LocalDBSCAN(eps: Double, minPoints: Int) extends Logging {
         }
 
       }
-      logDebug(s"iterating cluster:$cluster")
 
     })
 
@@ -54,45 +54,53 @@ class LocalDBSCAN(eps: Double, minPoints: Int) extends Logging {
 
   }
 
-  def findNeighbors(vector: LabeledVector, all: List[LabeledVector]): List[LabeledVector] =
-    all.filter(other => distanceSquared(vector, other) <= minDistanceSquared)
+  def findNeighbors(vector: LabeledVector, all: Iterable[LabeledVector]): Iterable[LabeledVector] =
+    all.view.filter(v => {
+      distanceSquared(vector, v) <= minDistanceSquared
+    })
 
   def distanceSquared(vector: LabeledVector, other: LabeledVector): Double =
     vector.point.distanceSquared(other.point)
 
   def expandCluster(
     vector: LabeledVector,
-    inneighbors: List[LabeledVector],
-    all: List[LabeledVector],
+    neighbors: Iterable[LabeledVector],
+    all: Iterable[LabeledVector],
     cluster: Int): Unit = {
 
     vector.isCore = true
+
     vector.label = cluster
 
-    val neighbors = inneighbors.to[ListBuffer]
+    val left = new Queue[Iterable[LabeledVector]]()
+    left.enqueue(neighbors)
 
-    neighbors.foreach(neighbor => {
+    while (left.nonEmpty) {
+      val curNeighbors = left.dequeue()
 
-      if (!neighbor.visited) {
+      curNeighbors.foreach(neighbor => {
 
-        neighbor.visited = true
+        if (!neighbor.visited) {
 
-        val curNeighbors = findNeighbors(neighbor, all)
+          neighbor.visited = true
 
-        if (curNeighbors.length >= minPoints) {
-          neighbors ++= curNeighbors
-          neighbor.isCore = true
-        } else {
-          neighbor.isBorder = true
+          val neighborNeighbors = findNeighbors(neighbor, all)
+
+          if (neighborNeighbors.size >= minPoints) {
+            neighbor.isCore = true
+            left.enqueue(neighborNeighbors)
+          } else {
+            neighbor.isBorder = true
+          }
         }
 
-      }
+        if (neighbor.label == Unlabeled) {
+          neighbor.label = cluster
+        }
 
-      if (neighbor.label == Unlabeled) {
-        neighbor.label = cluster
-      }
+      })
 
-    })
-
+    }
   }
+
 }

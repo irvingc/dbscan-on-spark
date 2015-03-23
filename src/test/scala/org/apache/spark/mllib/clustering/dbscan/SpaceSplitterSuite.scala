@@ -16,11 +16,8 @@
  */
 package org.apache.spark.mllib.clustering.dbscan
 
-import org.scalatest.Finders
 import org.scalatest.FunSuite
 import org.scalatest.Matchers
-
-import archery.Box
 
 class SpaceSplitterSuite extends FunSuite with Matchers {
 
@@ -32,7 +29,6 @@ class SpaceSplitterSuite extends FunSuite with Matchers {
     val complement = SpaceSplitter.complement(box, boundary)
 
     complement should equal(Box(1, 0, 2, 1))
-
   }
 
   test("should find y complement") {
@@ -43,7 +39,6 @@ class SpaceSplitterSuite extends FunSuite with Matchers {
     val complement = SpaceSplitter.complement(box, boundary)
 
     complement should equal(Box(0, 1, 2, 2))
-
   }
 
   test("should throw exception on invalid input") {
@@ -58,10 +53,7 @@ class SpaceSplitterSuite extends FunSuite with Matchers {
     val section2 = (Box(2, 2, 3, 3), 4)
     val boundary = new Box(0, 0, 3, 3)
 
-    val tree = SpaceSplitter.toRTree(List(section1, section2))
-
-    SpaceSplitter.pointsinBox(boundary, tree) should equal(7)
-
+    SpaceSplitter.pointsinBox(boundary, List(section1, section2)) should equal(7)
   }
 
   test("should find a split") {
@@ -72,9 +64,7 @@ class SpaceSplitterSuite extends FunSuite with Matchers {
 
     val boundary = new Box(0, 0, 3, 3)
 
-    val tree = SpaceSplitter.toRTree(List(section1, section2, section3))
-
-    val (split1, split2, _) = SpaceSplitter.costBasedBinarySplit(boundary, tree, 1)
+    val (split1, split2, _) = SpaceSplitter.costBasedBinarySplit(boundary, List(section1, section2, section3), 1)
 
     split1 should equal(Box(0, 0, 1, 3))
     split2 should equal(Box(1, 0, 3, 3))
@@ -102,7 +92,7 @@ class SpaceSplitterSuite extends FunSuite with Matchers {
 
     val sections = List(section1, section2, section3, section4, section5, section6)
 
-    val partitions = SpaceSplitter.findSplits(sections, 9, 1)
+    val partitions = SpaceSplitter.findSplits(sections, 9, 1).map({ case (b, _) => b })
 
     val expected = List(
       Box(1, 2, 3, 3),

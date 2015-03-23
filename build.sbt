@@ -8,9 +8,7 @@ lazy val root = (project in file(".")).
     licenses += ("Apache-2.0" -> url( "http://www.apache.org/licenses/LICENSE-2.0.html")),
     scalaVersion := "2.10.4",
 
-    resolvers += "bintray/meetup" at "http://dl.bintray.com/meetup/maven",
     libraryDependencies ++= Seq(
-      "com.meetup" %% "archery" % "0.3.0",
       "org.apache.spark" %% "spark-mllib" % "1.2.0" % "provided",
       "org.scalatest" %% "scalatest" % "2.0" % "test"
     ),
