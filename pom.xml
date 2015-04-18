@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.irvingc.spark</groupId>
-	<artifactId>dbscan-on-spark</artifactId>
+	<artifactId>dbscan-on-spark_2.10</artifactId>
 	<version>0.2.0-SNAPSHOT</version>
 
 	<name>Distributed DBSCAN on Apache Spark</name>
@@ -36,18 +36,47 @@
 		<spark.version>1.2.1</spark.version>
 	</properties>
 
+	<repositories>
+		<repository>
+			<id>central</id>
+			<!-- This should be at top, it makes maven try the central repo first 
+				and then others and hence faster dep resolution -->
+			<name>Maven Repository</name>
+			<url>https://repo1.maven.org/maven2</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>archery-repo</id>
+			<name>Repo for Archery R-Tree</name>
+			<url>http://dl.bintray.com/meetup/maven</url>
+		</repository>
+	</repositories>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.scala-lang</groupId>
 			<artifactId>scala-library</artifactId>
 			<version>${scala.version}</version>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.spark</groupId>
 			<artifactId>spark-mllib_${scala.binary.version}</artifactId>
 			<version>${spark.version}</version>
-			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.meetup</groupId>
+			<artifactId>archery_${scala.binary.version}</artifactId>
+			<version>0.3.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.davidmoten</groupId>
+			<artifactId>rtree</artifactId>
+			<version>0.5.8</version>
 		</dependency>
 		<dependency>
 			<groupId>org.scalatest</groupId>
@@ -84,7 +113,7 @@
 					<sourceDirectory>${basedir}/src/main/scala</sourceDirectory>
 					<testSourceDirectory>${basedir}/src/test/scala</testSourceDirectory>
 					<configLocation>${basedir}/scalastyle-config.xml</configLocation>
-					<outputFile>${buildDirectory}/scalastyle-output.xml</outputFile>
+					<outputFile>${project.build.directory}/scalastyle-output.xml</outputFile>
 				</configuration>
 				<executions>
 					<execution>
@@ -111,7 +140,6 @@
 					</execution>
 				</executions>
 			</plugin>
-
 		</plugins>
 	</build>
 

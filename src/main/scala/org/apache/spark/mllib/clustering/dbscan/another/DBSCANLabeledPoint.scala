@@ -14,18 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering
+package org.apache.spark.mllib.clustering.dbscan.another
 
-import org.apache.spark.mllib.clustering.dbscan.LabeledVector
+import org.apache.spark.mllib.linalg.Vector
 
-package object dbscan {
+object DBSCANLabeledPoint {
 
-  type BoxWithCount = (DBSCANBox, Int)
-  type Margins = (DBSCANBox, DBSCANBox, DBSCANBox)
-  type Mapping = ((Int, Int), (Int, Int))
-  type Partition = Iterator[(Int, Iterable[LabeledVector])]
+  val Unknown = 0
 
-  val Noise = -1
-  val Unlabeled = Noise + 1
+  object Flag extends Enumeration {
+    type Flag = Value
+    val Border, Core, Noise, NotFlagged = Value
+  }
+
+}
+
+class DBSCANLabeledPoint(vector: Vector) extends DBSCANPoint(vector) {
+
+  def this(point: DBSCANPoint) = this(point.vector)
+
+  var flag = DBSCANLabeledPoint.Flag.NotFlagged
+  var cluster = DBSCANLabeledPoint.Unknown
+  var visited = false
 
 }

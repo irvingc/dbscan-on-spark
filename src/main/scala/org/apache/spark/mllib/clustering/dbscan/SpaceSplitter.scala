@@ -18,13 +18,18 @@ package org.apache.spark.mllib.clustering.dbscan
 
 object SpaceSplitter {
 
-  def findSplits(boxesWithCount: Seq[BoxWithCount], limit: Long, boxSize: Float) =
+  def findSplits(boxesWithCount: Seq[BoxWithCount], limit: Long, boxSize: Double) =
     partition(boxesWithCount, limit, boxSize)
 
-  def partition(allBoxes: Seq[BoxWithCount], limit: Long, boxSize: Float) =
-    partitionr(List(findBoundingBox(allBoxes)), List[BoxWithCount](), allBoxes, limit, boxSize)
+  def partition(allDBSCANBoxes: Seq[BoxWithCount], limit: Long, boxSize: Double) =
+    partitionr(
+      List(findBoundingDBSCANBox(allDBSCANBoxes)),
+      List[BoxWithCount](),
+      allDBSCANBoxes,
+      limit,
+      boxSize)
 
-  def findBoundingBox(boxes: Seq[BoxWithCount]): Box = {
+  def findBoundingDBSCANBox(boxes: Seq[BoxWithCount]): DBSCANBox = {
 
     val (x, y, x2, y2) = boxes
       .foldLeft((Double.MaxValue, Double.MaxValue, Double.MinValue, Double.MinValue))(
@@ -35,30 +40,35 @@ object SpaceSplitter {
 
         })
 
-    Box(x, y, x2, y2)
+    DBSCANBox(x, y, x2, y2)
   }
 
   def partitionr(
-    topartition: List[Box],
+    topartition: List[DBSCANBox],
     partitions: List[BoxWithCount],
     all: Seq[BoxWithCount],
     limit: Long,
-    boxSize: Float): List[BoxWithCount] = {
+    boxSize: Double): List[BoxWithCount] = {
 
     topartition match {
       case head :: rest => {
-        if (pointsinBox(head, all) > limit) {
+        if (pointsinDBSCANBox(head, all) > limit) {
 
           costBasedBinarySplit(head, all, boxSize) match {
             case (s1, s2, c) =>
               if (s1 == head) {
-                partitionr(rest, (s1, pointsinBox(s1, all)) :: partitions, all, limit, boxSize)
+                partitionr(
+                  rest,
+                  (s1, pointsinDBSCANBox(s1, all)) :: partitions,
+                  all,
+                  limit,
+                  boxSize)
               } else {
                 partitionr(s1 :: s2 :: rest, partitions, all, limit, boxSize)
               }
           }
         } else {
-          partitionr(rest, (head, pointsinBox(head, all)) :: partitions, all, limit, boxSize)
+          partitionr(rest, (head, pointsinDBSCANBox(head, all)) :: partitions, all, limit, boxSize)
         }
 
       }
@@ -66,16 +76,16 @@ object SpaceSplitter {
     }
   }
 
-  def toRectangle(b: Box, i: Int): String =
+  def toRectangle(b: DBSCANBox, i: Int): String =
     s"Rectangle((${b.x},${b.y}),${b.x2 - b.x},${b.y2 - b.y},edgecolor=colors[$i],fc=colors[$i]),"
 
-  def cost(space: Box, boundary: Box, boxes: Seq[BoxWithCount]): Int = {
-    val spaceCount = pointsinBox(space, boxes)
-    val boundaryCount = pointsinBox(boundary, boxes)
+  def cost(space: DBSCANBox, boundary: DBSCANBox, boxes: Seq[BoxWithCount]): Int = {
+    val spaceCount = pointsinDBSCANBox(space, boxes)
+    val boundaryCount = pointsinDBSCANBox(boundary, boxes)
     ((boundaryCount / 2) - spaceCount).abs
   }
 
-  def pointsinBox(space: Box, boxes: Seq[BoxWithCount]): Int = {
+  def pointsinDBSCANBox(space: DBSCANBox, boxes: Seq[BoxWithCount]): Int = {
     boxes
       .filter({ case (b, _) => space.contains(b) })
       .foldLeft(0)(
@@ -83,11 +93,11 @@ object SpaceSplitter {
   }
 
   def costBasedBinarySplit(
-      boundary: Box, 
-      boxes: Seq[BoxWithCount], 
-      boxSize: Float): (Box, Box, Int) =
-    allBoxesWith(boundary, boxSize)
-      .foldLeft((Box.empty, Box.empty, Int.MaxValue))({
+    boundary: DBSCANBox,
+    boxes: Seq[BoxWithCount],
+    boxSize: Double): (DBSCANBox, DBSCANBox, Int) =
+    allDBSCANBoxesWith(boundary, boxSize)
+      .foldLeft((DBSCANBox.empty, DBSCANBox.empty, Int.MaxValue))({
         case ((s1, s2, minCost), box) =>
           (
             (cost: Int) =>
@@ -98,15 +108,15 @@ object SpaceSplitter {
               })(cost(box, boundary, boxes))
       })
 
-  def complement(box: Box, boundary: Box): Box =
+  def complement(box: DBSCANBox, boundary: DBSCANBox): DBSCANBox =
     if (box.x == boundary.x && box.y == boundary.y) {
       if (boundary.x2 >= box.x2 && boundary.y2 >= box.y2) {
         if (box.y2 == boundary.y2) {
-          Box(box.x2, box.y, boundary.x2, boundary.y2)
+          DBSCANBox(box.x2, box.y, boundary.x2, boundary.y2)
         } else if (box.x2 == boundary.x2) {
-          Box(box.x, box.y2, boundary.x2, boundary.y2)
+          DBSCANBox(box.x, box.y2, boundary.x2, boundary.y2)
         } else {
-          throw new IllegalArgumentException("Box is not a proper sub-rectangle")
+          throw new IllegalArgumentException("DBSCANBox is not a proper sub-rectangle")
         }
       } else {
         throw new IllegalArgumentException("box is smaller than boundary")
@@ -115,14 +125,14 @@ object SpaceSplitter {
       throw new IllegalArgumentException("unequal boxes")
     }
 
-  def allBoxesWith(boundary: Box, boxSize: Float): Set[Box] =
+  def allDBSCANBoxesWith(boundary: DBSCANBox, boxSize: Double): Set[DBSCANBox] =
     (
       (boundary.x + boxSize)
       .to(boundary.x2).by(boxSize)
-      .map(x => Box(boundary.x, boundary.y, x, boundary.y2)) ++
+      .map(x => DBSCANBox(boundary.x, boundary.y, x, boundary.y2)) ++
       (boundary.y + boxSize)
       .to(boundary.y2).by(boxSize)
-      .map(y => Box(boundary.x, boundary.y, boundary.x2, y)))
+      .map(y => DBSCANBox(boundary.x, boundary.y, boundary.x2, y)))
       .toSet
 
 }

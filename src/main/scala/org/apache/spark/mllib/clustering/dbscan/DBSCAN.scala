@@ -20,6 +20,9 @@ import org.apache.spark.Logging
 import org.apache.spark.SparkContext.rddToPairRDDFunctions
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
+import org.apache.spark.HashPartitioner
+import org.apache.spark.util.collection.OpenHashMap
+import scala.collection.immutable.HashSet
 
 object DBSCAN {
 
@@ -32,41 +35,74 @@ object DBSCAN {
   def fit(eps: Float, minPoints: Int, data: RDD[DBSCANPoint]): RDD[LabeledVector] =
     new DBSCAN(eps, minPoints, data.context.defaultParallelism).fit(data)
 
+  private[DBSCAN] def toMargins(box: DBSCANBox, eps: Double): Margins =
+    (DBSCANBox(box.x + eps, box.y + eps, box.x2 - eps, box.y2 - eps),
+      box,
+      DBSCANBox(box.x - eps, box.y - eps, box.x2 + eps, box.y2 + eps))
+
+  private[DBSCAN] def findPartitionContaining(
+    point: DBSCANPoint,
+    partitions: List[(Margins, Int)]): Int =
+    partitions
+      .filter({
+        case (margins, _) => margins match {
+          case (inner, main, outer) => main.contains(point)
+        }
+      })
+      .map({
+        case (_, id) => id
+      })
+      .head
+
+  private[DBSCAN] def toDBSCANBox(point: DBSCANPoint, boxSize: Double): DBSCANBox = {
+    val x = snapToGrid(point.x, boxSize)
+    val y = snapToGrid(point.y, boxSize)
+    DBSCANBox(x, y, x + boxSize, y + boxSize)
+
+  }
+
+  private[DBSCAN] def snapToGrid(p: Double, boxSize: Double): Double =
+    (lower(p, boxSize) / boxSize).intValue * boxSize
+
+  private[DBSCAN] def lower(p: Double, boxSize: Double): Double = if (p < 0) p - boxSize else p
+
 }
 
-class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable with Logging {
+class DBSCAN(eps: Double, minPoints: Int, parallelism: Int) extends Serializable with Logging {
 
   val boxSize = 2 * eps
 
   def fit(vectors: RDD[DBSCANPoint]): RDD[LabeledVector] = {
 
-    val localBoxesWithCount =
+    val localDBSCANBoxesWithCount =
       vectors
-        .map(v => (toBox(v), v))
+        .map(v => (DBSCAN.toDBSCANBox(v, boxSize), v))
         .aggregateByKey(0)(
           (acc, v) => acc + 1,
           (acc1, acc2) => acc1 + acc2)
         .collect()
 
-    val dataSize = localBoxesWithCount.foldLeft(0)(
+    val dataSize = localDBSCANBoxesWithCount.foldLeft(0)(
       (acc, boxWithCount) => boxWithCount match {
         case (box, count) => acc + count
       })
 
     val partitionSize = dataSize / parallelism
-    val totalBoxes = localBoxesWithCount.length
+    val totalDBSCANBoxes = localDBSCANBoxesWithCount.length
 
-    logDebug(s"Boxes: $totalBoxes")
+    logDebug(s"DBSCANBoxes: $totalDBSCANBoxes")
     logDebug(s"Partitionsize $partitionSize")
     logDebug(s"Datasize $dataSize")
 
-    val localPartitions = SpaceSplitter.findSplits(localBoxesWithCount, partitionSize, boxSize)
+    val localPartitions =
+      SpaceSplitter.findSplits(localDBSCANBoxesWithCount, partitionSize, boxSize)
+
     localPartitions.foreach({
       case (b, c) => logInfo(SpaceSplitter.toRectangle(b, 0) + " # count:" + c)
     })
 
     val localPartitionsWithMargins = localPartitions.map({
-      case (b, _) => toMargins(b)
+      case (b, _) => DBSCAN.toMargins(b, eps)
     }).zipWithIndex
 
     val foundLocalPartitions = localPartitionsWithMargins.length
@@ -94,13 +130,11 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
           })
       })
       .groupByKey(localPartitionsWithMargins.length)
-      .persist(StorageLevel.MEMORY_AND_DISK_SER)
 
-    val duplicatedCount = duplicated.keys.count()
-    logInfo(s"After duplication $duplicatedCount")
-
-    val clustered = duplicated.flatMapValues(localDBSCAN)
-      .persist(StorageLevel.DISK_ONLY)
+    val clustered =
+      duplicated
+        .flatMapValues(points => new RTreeLocalDBSCAN(eps, minPoints).fit(points))
+        .cache
 
     val clusteredCount = clustered.count()
     logInfo(s"After clustering: $clusteredCount")
@@ -184,59 +218,49 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
       .map({
         case (partition, vector) =>
           if (MarginClassifier.isInterior(vector.classification)) {
-            ((vector.point, partition), (partition, vector))
+            (partition, (partition, vector))
           } else {
-            ((vector.point, findPartitionContaining(vector.point, partitions.value)),
+            (DBSCAN.findPartitionContaining(vector.point, partitions.value),
               (partition, vector))
           }
       })
-      .groupByKey(new PointIDPartitioner(localPartitionsWithMargins.length))
-      .map({
-        case ((point, partition), labeledPoints) =>
-          labeledPoints.foldLeft(null: LabeledVector)(
-            (acc, tuple) => tuple match {
-              case (origPartition, vector) =>
-                if (acc == null) {
-                  if (vector.label != Noise) {
-                    vector.label = globalClusterIds.value((origPartition, vector.label))
-                  }
-                  vector
+      .groupByKey(localPartitionsWithMargins.length)
+      .mapValues(_.foldLeft(Map[DBSCANPoint, LabeledVector]())(
+        (labeled, vectorTuple) => vectorTuple match {
+          case (partition, vector) =>
+
+            labeled.get(vector.point) match {
+              case Some(found) => {
+                if (found.label == Noise && vector.label != Noise) {
+                  found.label = globalClusterIds.value((partition, vector.label))
+                  labeled + (found.point -> found)
+                } else if (vector.label == Noise) {
+                  labeled
                 } else {
-
-                  if (vector.label != Noise) {
-
-                    if (acc.label == Noise) {
-                      acc.label = globalClusterIds.value((origPartition, vector.label))
-                    } else {
-                      val expected = globalClusterIds.value((origPartition, vector.label))
-                      if (acc.label != expected) {
-                        val actual = acc.label
-                        val point = acc.point
-                        logDebug(s"Dual assignment: $actual and $expected for $point")
-                      }
-
-                    }
-
+                  val expected = globalClusterIds.value((partition, vector.label))
+                  if (found.label != expected) {
+                    logDebug(s"Dual assignment: ${found.label} and $expected for ${vector.point}")
+                    logDebug(s"${found.isBorder}, ${found.isCore}, ${found.label}")
+                    logDebug(s"${vector.isBorder}, ${vector.isCore}, ${vector.label}")
                   }
-
-                  acc
+                  labeled
                 }
-            })
 
-      })
+              }
+              case _ => if (vector.label != Noise) {
+                vector.label = globalClusterIds.value((partition, vector.label))
+                labeled + (vector.point -> vector)
+              } else {
+                labeled + (vector.point -> vector)
+              }
+
+            }
+
+        }))
+      .flatMapValues(_.values)
+      .values
+
   }
-
-  def findPartitionContaining(point: DBSCANPoint, partitions: List[(Margins, Int)]): Int =
-    partitions
-      .filter({
-        case (margins, _) => margins match {
-          case (inner, main, outer) => main.contains(point)
-        }
-      })
-      .map({
-        case (_, id) => id
-      })
-      .head
 
   def printAdjancencyMap(adjacencies: Map[Int, List[Int]]): Unit = {
     log.debug("Adjacencies:")
@@ -250,7 +274,7 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
       })
       .toMap
 
-  def contiguous(src: Box, others: List[(Margins, Int)]): List[Int] =
+  def contiguous(src: DBSCANBox, others: List[(Margins, Int)]): List[Int] =
     others
       .filter({
         case ((inner, main, outer), id) => src != main && main.intersects(src)
@@ -267,26 +291,5 @@ class DBSCAN(eps: Float, minPoints: Int, parallelism: Int) extends Serializable 
       }
     })
   }
-
-  def localDBSCAN(points: Iterable[LabeledVector]): TraversableOnce[LabeledVector] = {
-    new LocalDBSCAN(eps, minPoints).fit(points)
-  }
-
-  def toMargins(box: Box): Margins =
-    (Box(box.x + eps, box.y + eps, box.x2 - eps, box.y2 - eps),
-      box,
-      Box(box.x - eps, box.y - eps, box.x2 + eps, box.y2 + eps))
-
-  def toBox(point: DBSCANPoint): Box = {
-    val x = snapToGrid(point.x)
-    val y = snapToGrid(point.y)
-    Box(x, y, x + boxSize, y + boxSize)
-
-  }
-
-  def snapToGrid(p: Double): Float =
-    (lower(p) / boxSize).intValue * boxSize
-
-  def lower(p: Double): Double = if (p < 0) p - boxSize else p
 
 }

@@ -14,18 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering
+package org.apache.spark.mllib.clustering.dbscan.another
 
-import org.apache.spark.mllib.clustering.dbscan.LabeledVector
+import org.scalatest.FunSuite
+import org.scalatest.Matchers
 
-package object dbscan {
-
-  type BoxWithCount = (DBSCANBox, Int)
-  type Margins = (DBSCANBox, DBSCANBox, DBSCANBox)
-  type Mapping = ((Int, Int), (Int, Int))
-  type Partition = Iterator[(Int, Iterable[LabeledVector])]
-
-  val Noise = -1
-  val Unlabeled = Noise + 1
+class AdjacencyGraphSuite extends FunSuite with Matchers {
+  
+  test("should find adjacencies") {
+    
+    val adjacencies = List((1, 2), (2, 3), (3, 4), (1, 5), (5, 2))
+    
+    val graph = AdjacencyGraph(adjacencies)
+    
+    println(graph.getAdjacent(8))
+    println(graph.getAdjacent(5))
+    
+    println(graph.getAdjacent(1))
+    
+    
+    
+    
+  }
 
 }

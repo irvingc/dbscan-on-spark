@@ -31,11 +31,12 @@ object DBSCANSuite {
     ((array(0).toFloat, array(1).toFloat), array(3).toFloat.intValue())
 }
 
-class DBSCANSuite extends FunSuite with MLlibTestSparkContext with Matchers {
+class DBSCANSuiteOld extends FunSuite with MLlibTestSparkContext with Matchers {
 
   val testData = getClass.getClassLoader.getResource("scaled_data.csv")
   val expectedData = getClass.getClassLoader.getResource("labeled_data.csv")
 
+  /*
   test("dbscan") {
 
     val data = sc.textFile(testData.getFile)
@@ -64,5 +65,7 @@ class DBSCANSuite extends FunSuite with MLlibTestSparkContext with Matchers {
     labeled should equal(expected)
 
   }
+  * 
+  */
 
 }

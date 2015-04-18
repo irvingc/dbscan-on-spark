@@ -14,30 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering.dbscan
+package org.apache.spark.mllib.clustering.dbscan.regen
 
 import java.net.URI
-
 import scala.io.Source
-
 import org.scalatest.FunSuite
 import org.scalatest.Matchers
+import org.apache.spark.mllib.linalg.Vectors
 
-class LocalDBSCANSuite extends FunSuite with Matchers {
+class LocalDBSCANArcherySuite extends FunSuite with Matchers {
 
-  /*
-  //val corresponding = Map(1 -> 2, 3 -> 4, 2 -> 1, Noise -> Noise)
-  //val corresponding = Map(1 -> 1, 3 -> 2, 2 -> 4, Noise -> Noise)
-  val corresponding = Map(3 -> 1, 2 -> 4, 1 -> 2, Noise -> Noise)
+  private val dataFile = "labeled_data.csv"
+
+  private val corresponding = Map(3 -> 3D, 2 -> 2D, 1 -> 1D, 0 -> 0D)
 
   test("should cluster") {
 
-    val labeled = new ArcheryLocalDBSCAN(eps = 0.3F, minPoints = 10)
-      .fit(getRawData("scaled_data.csv"))
-      .map(l => ((l.point.x.toFloat, l.point.y.toFloat), corresponding(l.label)))
-      .toMap
+    val labeled: Map[DBSCANPoint, Double] =
+      new LocalDBSCANArchery(eps = 0.3F, minPoints = 10)
+        .fit(getRawData(dataFile))
+        .map(l => (l, l.cluster.toDouble))
+        .toMap
 
-    val expected = getExpectedData("labeled_data.csv")
+    val expected: Map[DBSCANPoint, Double] = getExpectedData(dataFile).toMap
 
     labeled.foreach {
       case (key, value) => {
@@ -49,33 +48,32 @@ class LocalDBSCANSuite extends FunSuite with Matchers {
       }
     }
 
-    labeled should equal(expected)
+    // labeled should equal(expected)
 
   }
 
-  def getExpectedData(file: String) = {
-    Source
-      .fromFile(getFile(file))
-      .getLines()
-      .map(DBSCANSuite.stringToPointLabel)
-      .toMap
-  }
-
-  def getRawData(file: String): List[LabeledVector] = {
-
+  def getExpectedData(file: String): Iterator[(DBSCANPoint, Double)] = {
     Source
       .fromFile(getFile(file))
       .getLines()
       .map(s => {
-        new LabeledVector(DBSCANPoint.fromString(s), MarginClassifier.Belonging)
+        val vector = Vectors.dense(s.split(',').map(_.toDouble))
+        val point = DBSCANPoint(vector)
+        (point, vector(2))
       })
-      .toList
-
   }
+
+  def getRawData(file: String): Iterable[DBSCANPoint] = {
+
+    Source
+      .fromFile(getFile(file))
+      .getLines()
+      .map(s => DBSCANPoint(Vectors.dense(s.split(',').map(_.toDouble))))
+      .toIterable
+  }
+
   def getFile(filename: String): URI = {
     getClass.getClassLoader.getResource(filename).toURI
   }
-  * 
-  */
 
 }

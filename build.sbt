@@ -8,8 +8,12 @@ lazy val root = (project in file(".")).
     licenses += ("Apache-2.0" -> url( "http://www.apache.org/licenses/LICENSE-2.0.html")),
     scalaVersion := "2.10.4",
 
+    resolvers += bintray.Opts.resolver.mavenRepo("archery"),
+
     libraryDependencies ++= Seq(
       "org.apache.spark" %% "spark-mllib" % "1.2.0" % "provided",
+      "com.meetup" %% "archery" % "0.3.0",
+      "com.github.davidmoten" % "rtree" % "0.5.8",
       "org.scalatest" %% "scalatest" % "2.0" % "test"
     ),
 
@@ -29,9 +33,6 @@ lazy val root = (project in file(".")).
       </developers>
 )
 
-
-
-
 // Create a default Scala style task to run with tests
 lazy val checkStyle = taskKey[Unit]("checkStyle")
 
@@ -42,3 +43,5 @@ checkStyle := org.scalastyle.sbt.ScalastylePlugin.scalastyle.in(Compile).toTask(
 // Prevent scala from being included in the fat jar
 assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
  
+// configure bintray plugin
+seq(bintraySettings:_*)

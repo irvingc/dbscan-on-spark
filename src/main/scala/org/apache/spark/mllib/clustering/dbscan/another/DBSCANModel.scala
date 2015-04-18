@@ -14,18 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering
+package org.apache.spark.mllib.clustering.dbscan.another
 
-import org.apache.spark.mllib.clustering.dbscan.LabeledVector
+import org.apache.spark.rdd.RDD
+import org.apache.spark.mllib.linalg.Vector
 
-package object dbscan {
+class DBSCANModel(
+  val partitions: List[(Int, DBSCANBox)],
+  val labeledPoints: RDD[DBSCANLabeledPoint]) {
 
-  type BoxWithCount = (DBSCANBox, Int)
-  type Margins = (DBSCANBox, DBSCANBox, DBSCANBox)
-  type Mapping = ((Int, Int), (Int, Int))
-  type Partition = Iterator[(Int, Iterable[LabeledVector])]
-
-  val Noise = -1
-  val Unlabeled = Noise + 1
+  def predict(vector: Vector, labeledPoints: RDD[DBSCANLabeledPoint]) {
+    // no op yet
+  }
 
 }

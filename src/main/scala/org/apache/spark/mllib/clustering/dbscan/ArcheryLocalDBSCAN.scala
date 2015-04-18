@@ -16,76 +16,79 @@
  */
 package org.apache.spark.mllib.clustering.dbscan
 
+import org.apache.spark.Logging
+import archery.RTree
+import archery.Entry
+import archery.Point
+import archery.Box
 import scala.collection.mutable.Queue
 
-import org.apache.spark.Logging
-
-class LocalDBSCAN(eps: Double, minPoints: Int) extends Logging {
+class ArcheryLocalDBSCAN(eps: Double, minPoints: Int) extends Logging {
 
   val minDistanceSquared = eps * eps
+  val halfEps = eps / 2
 
   def fit(vectors: Iterable[LabeledVector]): Iterable[LabeledVector] = {
 
-    logInfo(s"About to start fitting")
+    val tree = vectors.foldLeft(RTree[LabeledVector]())(
+      (tempTree, v) => tempTree.insert(Entry(Point(v.point.x.toFloat, v.point.y.toFloat), v)))
 
     var cluster = Unlabeled
 
-    for (vector <- vectors) {
+    for (entry <- tree.entries) {
+      val vector = entry.value
 
       if (!vector.visited) {
         vector.visited = true
 
-        val neighbors = findNeighbors(vector, vectors)
+        val neighbors = tree.search(toBoundingBox(vector.point))
 
         if (neighbors.size < minPoints) {
           vector.label = Noise
         } else {
           cluster += 1
-          expandCluster(vector, neighbors, vectors, cluster)
+          expandCluster(vector, neighbors, tree, cluster)
         }
 
       }
 
     }
 
-    logInfo("done...")
+    logDebug(s"total: $cluster")
 
-    vectors
+    tree.entries.map(_.value).toIterable
 
   }
 
-  def findNeighbors(vector: LabeledVector, all: Iterable[LabeledVector]): Iterable[LabeledVector] =
-    all.view.filter(v => {
-      distanceSquared(vector, v) <= minDistanceSquared
-    })
-
-  def distanceSquared(vector: LabeledVector, other: LabeledVector): Double =
-    vector.point.distanceSquared(other.point)
+  def zup(point: DBSCANPoint, entry: Entry[LabeledVector]): Boolean = {
+    entry.geom.distanceSquared(Point(point.x.toFloat, point.y.toFloat)) <= minDistanceSquared
+  }
 
   def expandCluster(
     vector: LabeledVector,
-    neighbors: Iterable[LabeledVector],
-    all: Iterable[LabeledVector],
+    neighbors: Seq[Entry[LabeledVector]],
+    tree: RTree[LabeledVector],
     cluster: Int): Unit = {
 
     vector.isCore = true
-
     vector.label = cluster
 
-    val left = new Queue[Iterable[LabeledVector]]()
+    val left = new Queue[Seq[Entry[LabeledVector]]]()
     left.enqueue(neighbors)
 
     while (left.nonEmpty) {
       val curNeighbors = left.dequeue()
 
-      curNeighbors.foreach(neighbor => {
+      for (neighborEntry <- curNeighbors) {
+
+        val neighbor = neighborEntry.value
 
         if (!neighbor.visited) {
 
           neighbor.visited = true
           neighbor.label = cluster
 
-          val neighborNeighbors = findNeighbors(neighbor, all)
+          val neighborNeighbors = tree.search(toBoundingBox(neighbor.point))
 
           if (neighborNeighbors.size >= minPoints) {
             neighbor.isCore = true
@@ -98,9 +101,17 @@ class LocalDBSCAN(eps: Double, minPoints: Int) extends Logging {
           neighbor.isBorder = true
         }
 
-      })
+      }
 
     }
+
+  }
+
+  def toBoundingBox(point: DBSCANPoint): Box = {
+    Box((point.x - eps).toFloat,
+      (point.y - eps).toFloat,
+      (point.x + eps).toFloat,
+      (point.y + eps).toFloat)
   }
 
 }

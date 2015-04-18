@@ -14,25 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering.dbscan
+package org.apache.spark.mllib.clustering.dbscan.regen
 
-import org.apache.spark.HashPartitioner
+import org.apache.spark.mllib.linalg.Vector
 
-class PointIDPartitioner(partitions: Int) extends HashPartitioner(partitions) {
+case class DBSCANPoint(val vector: Vector) {
 
-  override def getPartition(key: Any): Int = key match {
-    case (p, i) => (p, i) match {
-      case (p: DBSCANPoint, partition: Int) => partition
-    }
-    case _ => super.getPartition(key)
+  def x = vector(0)
+  def y = vector(1)
+
+  def distanceSquared(other: DBSCANPoint): Double = {
+    val dx = other.x - x
+    val dy = other.y - y
+    (dx * dx) + (dy * dy)
   }
-
-  override def equals(other: Any): Boolean = other match {
-    case h: PointIDPartitioner =>
-      h.numPartitions == numPartitions
-    case _ => super.equals(other)
-  }
-
-  override def hashCode: Int = numPartitions
 
 }

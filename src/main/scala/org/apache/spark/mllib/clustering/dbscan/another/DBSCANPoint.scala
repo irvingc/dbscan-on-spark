@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering
+package org.apache.spark.mllib.clustering.dbscan.another
 
-import org.apache.spark.mllib.clustering.dbscan.LabeledVector
+import org.apache.spark.mllib.linalg.Vector
 
-package object dbscan {
+case class DBSCANPoint(val vector: Vector) {
 
-  type BoxWithCount = (DBSCANBox, Int)
-  type Margins = (DBSCANBox, DBSCANBox, DBSCANBox)
-  type Mapping = ((Int, Int), (Int, Int))
-  type Partition = Iterator[(Int, Iterable[LabeledVector])]
+  def x = vector(0)
+  def y = vector(1)
 
-  val Noise = -1
-  val Unlabeled = Noise + 1
+  def distanceSquared(other: DBSCANPoint): Double = {
+    val dx = other.x - x
+    val dy = other.y - y
+    (dx * dx) + (dy * dy)
+  }
 
 }

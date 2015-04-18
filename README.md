@@ -3,8 +3,8 @@
 ### Overview
 
 This is an implementation of the [DBSCAN clustering algorithm](http://en.wikipedia.org/wiki/DBSCAN) 
-on top of [Apache Spark](http://spark.apache.org/). It is based on the parem from He, Yaobin, et al.
-["MR-DBSCAN: an efficient parallel density-based clustering algorithm using mapreduce"](http://ieeexplore.ieee.org/xpls/abs_all.jsp?arnumber=6121313). 
+on top of [Apache Spark](http://spark.apache.org/). It is based on the paper from He, Yaobin, et al.
+["MR-DBSCAN: a scalable MapReduce-based DBSCAN algorithm for heavily skewed data"](http://www.researchgate.net/profile/Yaobin_He/publication/260523383_MR-DBSCAN_a_scalable_MapReduce-based_DBSCAN_algorithm_for_heavily_skewed_data/links/0046353a1763ee2bdf000000.pdf). 
 
 ### Getting DBSCAN on Spark
 

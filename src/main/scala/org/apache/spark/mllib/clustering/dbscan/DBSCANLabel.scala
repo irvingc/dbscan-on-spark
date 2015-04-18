@@ -14,18 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering
+package org.apache.spark.mllib.clustering.dbscan
 
-import org.apache.spark.mllib.clustering.dbscan.LabeledVector
-
-package object dbscan {
-
-  type BoxWithCount = (DBSCANBox, Int)
-  type Margins = (DBSCANBox, DBSCANBox, DBSCANBox)
-  type Mapping = ((Int, Int), (Int, Int))
-  type Partition = Iterator[(Int, Iterable[LabeledVector])]
-
-  val Noise = -1
-  val Unlabeled = Noise + 1
-
+class DBSCANLabel {
+  var visited = false
+  var isCore = false
+  var isBorder = false
+  var label = Unlabeled
 }

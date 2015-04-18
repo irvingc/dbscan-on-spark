@@ -14,43 +14,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering.dbscan
+package org.apache.spark.mllib.clustering.dbscan.another
 
 object DBSCANBox {
 
   val Precision = 0.0001
 
   /**
-   * This is an "inside-out" box that we use as a good starting
-   * value. The nice thing about this, unlike Box(0,0,0,0), is that
-   * when merging with another box we don't include an artifical
-   * "empty" point.
+   * Creates a box with the given point as left corner and the given width and height
    */
-  val empty: DBSCANBox = {
-    val s = Math.sqrt(Double.MaxValue).toFloat
-    val t = s + -2.0F * s
-    DBSCANBox(s, s, t, t)
+  def apply(origin: DBSCANPoint, width: Double, height: Double) {
+    DBSCANBox(origin.x, origin.y, origin.x + width, origin.y + height)
   }
 }
-
+/**
+ * A box whose left corner is (x,y) and righ upper corner is (x2, y2)
+ */
 case class DBSCANBox(x: Double, y: Double, x2: Double, y2: Double) {
-  
+
+  /**
+   * Returns whether other is contained by this box
+   */
   def contains(other: DBSCANBox): Boolean = {
     x <= other.x && other.x2 <= x2 && y <= other.y && other.y2 <= y2
   }
-  
-  def contains(point: DBSCANPoint) : Boolean = {
-   x <= point.x && point.x <= x2 && y <= point.y && point.y <= y2 
-  }
-  
-  def intersects(other: DBSCANBox): Boolean = {
-    (x < other.x2 || nearlyEqual(x, other.x2, DBSCANBox.Precision)) &&(
-      other.x < x2 || nearlyEqual(x2, other.x, DBSCANBox.Precision)) &&(
-      y < other.y2 || nearlyEqual(y, other.y2, DBSCANBox.Precision)) &&(
-      other.y < y2 || nearlyEqual(other.y, y2, DBSCANBox.Precision))
+
+  /**
+   * Returns whether point is contained by this box
+   */
+  def contains(point: DBSCANPoint): Boolean = {
+    x <= point.x && point.x <= x2 && y <= point.y && point.y <= y2
   }
 
-  def nearlyEqual(a: Double, b: Double, epsilon: Double): Boolean = {
+  def almostContains(point: DBSCANPoint): Boolean = {
+    x < point.x && point.x < x2 && y < point.y && point.y < y2
+  }
+
+  /**
+   * Shrinks the box by the given amount
+   */
+  def contract(amount: Double): DBSCANBox = {
+    DBSCANBox(x + amount, y + amount, x2 - amount, y2 - amount)
+  }
+
+  private def nearlyEqual(a: Double, b: Double, epsilon: Double): Boolean = {
 
     val diff = (a - b).abs
 
@@ -64,6 +71,5 @@ case class DBSCANBox(x: Double, y: Double, x2: Double, y2: Double) {
     }
 
   }
-  
-}
 
+}
