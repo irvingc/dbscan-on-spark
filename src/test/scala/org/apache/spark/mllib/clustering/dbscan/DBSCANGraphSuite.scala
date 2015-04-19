@@ -28,7 +28,7 @@ class DBSCANGraphSuite extends FunSuite with Matchers  {
     
     val connected = graph.getConnected(1)
     
-    connected should equal(Set(3, 1))
+    connected should equal(Set(3))
     
   }
 
@@ -38,7 +38,7 @@ class DBSCANGraphSuite extends FunSuite with Matchers  {
     
     val connected = graph.getConnected(1)
     
-    connected should equal(Set(3, 4, 1))
+    connected should equal(Set(3, 4))
     
   }
 
@@ -52,7 +52,7 @@ class DBSCANGraphSuite extends FunSuite with Matchers  {
     
   }
 
-  test("should return for none for unknown") {
+  test("should return none for unknown") {
     
     val graph = DBSCANGraph[Int]().addVertex(5).connect(1, 3)
     

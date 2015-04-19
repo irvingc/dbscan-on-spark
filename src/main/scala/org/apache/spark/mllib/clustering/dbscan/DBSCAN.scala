@@ -166,7 +166,7 @@ class DBSCAN private (
         map.get(clusterId) match {
           case None => {
             val nextId = id + 1
-            val connectedClusters = adjacencyGraph.getConnected(clusterId)
+            val connectedClusters = adjacencyGraph.getConnected(clusterId) + clusterId
             logDebug(s"Connected clusters $connectedClusters")
             val toadd = connectedClusters.map((_, nextId)).toMap
             (nextId, map ++ toadd)

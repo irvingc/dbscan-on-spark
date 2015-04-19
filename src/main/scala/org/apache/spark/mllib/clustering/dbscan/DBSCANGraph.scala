@@ -68,7 +68,7 @@ class DBSCANGraph[T] private (nodes: Map[T, Set[T]]) extends Serializable {
    * Find all vertexes that are reachable from `from`
    */
   def getConnected(from: T): Set[T] = {
-    getAdjacent(Set(from), Set[T](), Set[T]())
+    getAdjacent(Set(from), Set[T](), Set[T]()) - from
   }
 
   @tailrec
