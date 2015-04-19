@@ -22,6 +22,12 @@ import org.apache.spark.Logging
 import org.apache.spark.mllib.clustering.dbscan.DBSCANLabeledPoint.Flag
 import org.apache.spark.mllib.linalg.Vectors
 
+/**
+ * A naive implementation of DBSCAN. It has O(n2) complexity
+ * but uses no extra memory. This implementation is not used
+ * by the parallel version of DBSCAN.
+ *
+ */
 class LocalDBSCANNaive(eps: Double, minPoints: Int) extends Logging {
 
   val minDistanceSquared = eps * eps

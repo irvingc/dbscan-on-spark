@@ -26,6 +26,9 @@ import archery.Entry
 import archery.Point
 import archery.RTree
 
+/**
+ * An implementation of DBSCAN using an R-Tree to improve its running time
+ */
 class LocalDBSCANArchery(eps: Double, minPoints: Int) extends Logging {
 
   val minDistanceSquared = eps * eps

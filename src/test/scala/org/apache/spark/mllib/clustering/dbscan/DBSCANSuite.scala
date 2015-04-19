@@ -33,7 +33,8 @@ class DBSCANSuite extends LocalDBSCANArcherySuite with MLlibTestSparkContext wit
 
     val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble)))
 
-    val model = DBSCAN(eps = 0.3F, minPoints = 10, maxPointsPerPartition = 250).train(parsedData)
+    val model = DBSCAN.train(parsedData, eps = 0.3F, minPoints = 10, maxPointsPerPartition = 250)
+    
 
     val clustered = model.labeledPoints
       .map(p => (p, p.cluster))

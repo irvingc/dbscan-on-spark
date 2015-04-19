@@ -43,10 +43,15 @@ need to account for the scala version (the example is for Scala 2.10):
 
 
 ```
-DBSCAN on Spark is published against Scala 2.10.
+DBSCAN on Spark is built against Scala 2.10.
 
 
 ### Example usage 
+
+
+I have created a [sample project](https://github.com/irvingc/dbscan-on-spark-example) 
+showing how DBSCAN on Spark can be used. The following however should give you a
+good idea of how it should be included in your application.
 
 ```scala
 import org.apache.spark.mllib.clustering.dbscan.DBSCAN
@@ -64,11 +69,11 @@ object DBSCANSample {
 
     log.info(s"EPS: $eps minPoints: $minPoints")
 
-    val model = DBSCAN(
+    val model = DBSCAN.traing(
+      parsedData,
       eps = eps,
       minPoints = minPoints,
       maxPointsPerPartition = maxPointsPerPartition)
-      .train(parsedData)
 
     model.labeledPoints.map(p =>  s"${p.x},${p.y},${p.cluster}").saveAsTextFile(dest)
 

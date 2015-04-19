@@ -18,36 +18,55 @@ package org.apache.spark.mllib.clustering.dbscan
 
 import scala.annotation.tailrec
 
+/**
+ * Top level method for creating a DBSCANGraph
+ */
 object DBSCANGraph {
 
+  /**
+   * Create an empty graph
+   */
   def apply[T](): DBSCANGraph[T] = new DBSCANGraph(Map[T, Set[T]]())
-
-  private def apply[T](nodes: Map[T, Set[T]]): DBSCANGraph[T] = {
-    new DBSCANGraph(nodes)
-  }
 
 }
 
+/**
+ * An immutable unweighted graph with vertexes and edges
+ */
 class DBSCANGraph[T] private (nodes: Map[T, Set[T]]) extends Serializable {
 
+  /**
+   * Add the given vertex `v` to the graph
+   *
+   */
   def addVertex(v: T): DBSCANGraph[T] = {
     nodes.get(v) match {
-      case None    => DBSCANGraph(nodes + (v -> Set()))
+      case None    => new DBSCANGraph(nodes + (v -> Set()))
       case Some(_) => this
     }
   }
 
+  /**
+   * Insert an edge from `from` to `to`
+   */
   def insertEdge(from: T, to: T): DBSCANGraph[T] = {
     nodes.get(from) match {
-      case None       => DBSCANGraph(nodes + (from -> Set(to)))
-      case Some(edge) => DBSCANGraph(nodes + (from -> (edge + to)))
+      case None       => new DBSCANGraph(nodes + (from -> Set(to)))
+      case Some(edge) => new DBSCANGraph(nodes + (from -> (edge + to)))
     }
   }
 
-  def connect(from: T, to: T): DBSCANGraph[T] = {
-    insertEdge(from, to).insertEdge(to, from)
+  /**
+   * Insert a vertex from `one` to `another`, and from `another` to `one`
+   *
+   */
+  def connect(one: T, another: T): DBSCANGraph[T] = {
+    insertEdge(one, another).insertEdge(another, one)
   }
 
+  /**
+   * Find all vertexes that are reachable from `from`
+   */
   def getConnected(from: T): Set[T] = {
     getAdjacent(Set(from), Set[T](), Set[T]())
   }

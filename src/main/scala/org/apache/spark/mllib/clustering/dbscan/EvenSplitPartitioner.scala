@@ -20,12 +20,15 @@ import scala.annotation.tailrec
 
 import org.apache.spark.Logging
 
+/**
+ * Helper methods for calling the partitioner
+ */
 object EvenSplitPartitioner {
 
   def partition(
+    toSplit: Set[(DBSCANRectangle, Int)],
     maxPointsPerPartition: Long,
-    minimumRectangleSize: Double)(
-      toSplit: Set[(DBSCANRectangle, Int)]): List[(DBSCANRectangle, Int)] = {
+    minimumRectangleSize: Double): List[(DBSCANRectangle, Int)] = {
     new EvenSplitPartitioner(maxPointsPerPartition, minimumRectangleSize)
       .findPartitions(toSplit)
   }

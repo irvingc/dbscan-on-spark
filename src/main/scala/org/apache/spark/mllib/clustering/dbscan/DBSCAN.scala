@@ -22,19 +22,42 @@ import org.apache.spark.mllib.clustering.dbscan.DBSCANLabeledPoint.Flag
 import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
 
+/**
+ * Top level method for calling DBSCAN clustering
+ */
 object DBSCAN {
 
-  def apply(
+  /**
+   * Train a DBSCAN Model with the given set of parameters
+   * @param data training points stored as `RDD[Vector]`
+   * only the first two points of the vector are taken into consideration
+   * @param eps the maximum distance between two points for them to be considered as part
+   * of the same region
+   * @param minPoints the minimum number of points required to form a dense region
+   * @param maxPointsPerPartition the largest number of points in a single partition
+   */
+  def train(
+    data: RDD[Vector],
     eps: Double,
     minPoints: Int,
     maxPointsPerPartition: Int): DBSCAN = {
 
-    new DBSCAN(eps, minPoints, maxPointsPerPartition, null, null)
+    new DBSCAN(eps, minPoints, maxPointsPerPartition, null, null).train(data)
 
   }
 
 }
 
+/**
+ * An implementation of a parallel DBSCAN clustering. The algorithm will split the data space
+ * into a number of partitions, making a best effort to keep the number of points in each
+ *  partition under `maxPointsPerPartition`. After partitioning, traditional DBSCAN
+ *  clustering will be run in parallel for each partition and finally the results
+ *  of each partition will be merged to identify global clusters.
+ *  
+ *  This is an iterative algorithm that will make multiple passes over the data,
+ *  any given RDDs should be cached by the user.
+ */
 class DBSCAN private (
   val eps: Double,
   val minPoints: Int,
@@ -49,18 +72,14 @@ class DBSCAN private (
 
   def minimumRectangleSize = 2 * eps
 
-  def predict(vector: Vector): DBSCANLabeledPoint = {
-    // not implemented yet
-    null
-  }
-
   def labeledPoints: RDD[DBSCANLabeledPoint] = {
     labeledPartitionedPoints.values
   }
 
-  def train(vectors: RDD[Vector]): DBSCAN = {
+  private def train(vectors: RDD[Vector]): DBSCAN = {
 
     // generate the smallest rectangles that split the space
+    // and count how many points are contained in each one of them
     val minimumRectanglesWithCount =
       vectors
         .map(toMinimumBoundingRectangle)
@@ -71,15 +90,16 @@ class DBSCAN private (
 
     // find the best partitions for the data space
     val localPartitions = EvenSplitPartitioner
-      .partition(maxPointsPerPartition, minimumRectangleSize)(minimumRectanglesWithCount)
+      .partition(minimumRectanglesWithCount, maxPointsPerPartition, minimumRectangleSize)
 
     logDebug("Found partitions: ")
     localPartitions.foreach(p => logDebug(p.toString))
 
     // grow partitions to include eps
-    val localMargins = localPartitions
-      .map({ case (p, _) => (p.shrink(eps), p, p.shrink(-eps)) })
-      .zipWithIndex
+    val localMargins =
+      localPartitions
+        .map({ case (p, _) => (p.shrink(eps), p, p.shrink(-eps)) })
+        .zipWithIndex
 
     val margins = vectors.context.broadcast(localMargins)
 
@@ -132,7 +152,7 @@ class DBSCAN private (
     // find all cluster ids
     val localClusterIds =
       clustered
-        .filter({ case (_, point) => point.flag != DBSCANLabeledPoint.Flag.Noise })
+        .filter({ case (_, point) => point.flag != Flag.Noise })
         .mapValues(_.cluster)
         .distinct()
         .collect()
@@ -165,23 +185,25 @@ class DBSCAN private (
 
     logDebug("About to relabel inner points")
     // relabel non-duplicated points
-    val labeledInner = clustered
-      .filter(isInnerPoint(_, margins.value))
-      .map {
-        case (partition, point) =>
+    val labeledInner =
+      clustered
+        .filter(isInnerPoint(_, margins.value))
+        .map {
+          case (partition, point) => {
 
-          if (point.flag != Flag.Noise) {
-            point.cluster = clusterIds.value((partition, point.cluster))
+            if (point.flag != Flag.Noise) {
+              point.cluster = clusterIds.value((partition, point.cluster))
+            }
+
+            (partition, point)
           }
-
-          (partition, point)
-      }
+        }
 
     logDebug("About to relabel outer points")
     // de-duplicate and label merge points
     val labeledOuter =
       mergePoints.flatMapValues(partition => {
-        partition.foldLeft(Map[DBSCANPoint, DBSCANLabeledPoint]()) {
+        partition.foldLeft(Map[DBSCANPoint, DBSCANLabeledPoint]())({
           case (all, (partition, point)) =>
 
             if (point.flag != Flag.Noise) {
@@ -190,22 +212,22 @@ class DBSCAN private (
 
             all.get(point) match {
               case None => all + (point -> point)
-              case Some(prev) =>
+              case Some(prev) => {
                 // override previous entry unless new entry is noise
                 if (point.flag != Flag.Noise) {
                   prev.flag = point.flag
                   prev.cluster = point.cluster
                 }
                 all
+              }
             }
 
-        }
-          .values
+        }).values
       })
 
-    val finalPartitions = localMargins.map({
+    val finalPartitions = localMargins.map {
       case ((_, p, _), index) => (index, p)
-    })
+    }
 
     logDebug("Done")
 
@@ -216,6 +238,15 @@ class DBSCAN private (
       finalPartitions,
       labeledInner.union(labeledOuter))
 
+  }
+
+  /**
+   * Find the appropriate label to the given `vector`
+   *
+   * This method is not yet implemented
+   */
+  def predict(vector: Vector): DBSCANLabeledPoint = {
+    throw new NotImplementedError
   }
 
   private def isInnerPoint(

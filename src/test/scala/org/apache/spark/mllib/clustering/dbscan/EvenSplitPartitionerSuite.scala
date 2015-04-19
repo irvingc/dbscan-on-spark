@@ -31,7 +31,7 @@ class EvenSplitPartitionerSuite extends FunSuite with Matchers {
 
     val sections = Set(section1, section2, section3, section4, section5, section6)
 
-    val partitions = EvenSplitPartitioner.partition(9, 1)(sections)
+    val partitions = EvenSplitPartitioner.partition(sections, 9, 1)
 
     val expected = List(
       (DBSCANRectangle(1, 2, 3, 3), 4),
@@ -50,8 +50,9 @@ class EvenSplitPartitionerSuite extends FunSuite with Matchers {
     val section2 = (DBSCANRectangle(2, 2, 3, 3), 4)
     val section3 = (DBSCANRectangle(0, 1, 1, 2), 2)
 
+    val sections = Set(section1, section2, section3)
 
-    val partitions = EvenSplitPartitioner.partition(4, 1)(Set(section1, section2, section3))
+    val partitions = EvenSplitPartitioner.partition(sections, 4, 1)
 
     partitions(0) should equal((DBSCANRectangle(1, 0, 3, 3), 4))
     partitions(1) should equal((DBSCANRectangle(0, 1, 1, 3), 2))
