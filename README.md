@@ -69,7 +69,7 @@ object DBSCANSample {
 
     log.info(s"EPS: $eps minPoints: $minPoints")
 
-    val model = DBSCAN.traing(
+    val model = DBSCAN.train(
       parsedData,
       eps = eps,
       minPoints = minPoints,
