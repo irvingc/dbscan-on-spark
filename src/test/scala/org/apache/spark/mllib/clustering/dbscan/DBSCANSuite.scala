@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering.dbscan.regen
+package org.apache.spark.mllib.clustering.dbscan
 
 import org.apache.spark.SparkContext.rddToPairRDDFunctions
 import org.apache.spark.mllib.linalg.Vectors
@@ -34,11 +34,15 @@ class DBSCANSuite extends LocalDBSCANArcherySuite with MLlibTestSparkContext wit
     val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble)))
 
     val model = DBSCAN(eps = 0.3F, minPoints = 10, maxPointsPerPartition = 250).train(parsedData)
-    
 
     val clustered = model.labeledPoints.map(p => (p, p.cluster)).collectAsMap()
 
-    val expected = getExpectedData("labeled_data.csv").toMap
+    val expected = getExpectedData(dataFile).toMap
+
+    clustered.size should equal(expected.size)
+
+    println(clustered.size)
+    println(expected.size)
 
     clustered.foreach {
       case (key, value) => {

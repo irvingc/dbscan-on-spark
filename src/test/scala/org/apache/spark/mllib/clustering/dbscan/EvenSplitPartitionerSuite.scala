@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering.dbscan.regen
+package org.apache.spark.mllib.clustering.dbscan
 
 import org.scalatest.FunSuite
 import org.scalatest.Matchers
@@ -41,6 +41,20 @@ class EvenSplitPartitionerSuite extends FunSuite with Matchers {
       (DBSCANRectangle(0, 0, 2, 1), 5))
 
     partitions should equal(expected)
+
+  }
+
+  test("should find two splits") {
+
+    val section1 = (DBSCANRectangle(0, 0, 1, 1), 3)
+    val section2 = (DBSCANRectangle(2, 2, 3, 3), 4)
+    val section3 = (DBSCANRectangle(0, 1, 1, 2), 2)
+
+
+    val partitions = EvenSplitPartitioner.partition(4, 1)(Set(section1, section2, section3))
+
+    partitions(0) should equal((DBSCANRectangle(1, 0, 3, 3), 4))
+    partitions(1) should equal((DBSCANRectangle(0, 1, 1, 3), 2))
 
   }
 }

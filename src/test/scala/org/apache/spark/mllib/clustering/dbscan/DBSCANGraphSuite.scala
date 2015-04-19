@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering.dbscan.regen
+package org.apache.spark.mllib.clustering.dbscan
 
 import org.scalatest.FunSuite
 import org.scalatest.Matchers

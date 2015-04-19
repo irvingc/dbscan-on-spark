@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering.dbscan.regen
+package org.apache.spark.mllib.clustering.dbscan
 
 import java.net.URI
+
 import scala.io.Source
+
 import org.scalatest.FunSuite
 import org.scalatest.Matchers
 import org.apache.spark.mllib.linalg.Vectors
@@ -25,8 +27,6 @@ import org.apache.spark.mllib.linalg.Vectors
 class LocalDBSCANArcherySuite extends FunSuite with Matchers {
 
   private val dataFile = "labeled_data.csv"
-
-  private val corresponding = Map(3 -> 3D, 2 -> 2D, 1 -> 1D, 0 -> 0D)
 
   test("should cluster") {
 
@@ -48,7 +48,7 @@ class LocalDBSCANArcherySuite extends FunSuite with Matchers {
       }
     }
 
-    // labeled should equal(expected)
+    labeled should equal(expected)
 
   }
 

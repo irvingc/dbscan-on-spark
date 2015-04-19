@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering.dbscan.regen
+package org.apache.spark.mllib.clustering.dbscan
 
 import scala.collection.mutable.Queue
 
 import org.apache.spark.Logging
-import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.mllib.clustering.dbscan.regen.DBSCANLabeledPoint.Flag
+import org.apache.spark.mllib.clustering.dbscan.DBSCANLabeledPoint.Flag
 
 import archery.Box
 import archery.Entry

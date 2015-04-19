@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering.dbscan.regen
+package org.apache.spark.mllib.clustering.dbscan
 
 import scala.annotation.tailrec
 
 import org.apache.spark.Logging
-import org.apache.spark.annotation.DeveloperApi
 
 object EvenSplitPartitioner {
 

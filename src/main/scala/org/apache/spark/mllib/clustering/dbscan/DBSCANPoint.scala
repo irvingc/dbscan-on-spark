@@ -16,28 +16,17 @@
  */
 package org.apache.spark.mllib.clustering.dbscan
 
-object DBSCANPoint {
+import org.apache.spark.mllib.linalg.Vector
 
-  def fromString(s: String): DBSCANPoint = {
-    fromStringArray(s.split(','))
-  }
+case class DBSCANPoint(val vector: Vector) {
 
-  def fromStringArray(array: Array[String]): DBSCANPoint = {
-    DBSCANPoint(array(0).toDouble, array(1).toDouble)
-  }
+  def x = vector(0)
+  def y = vector(1)
 
-}
-
-case class DBSCANPoint(val x: Double, val y: Double) extends Serializable {
-
-  def this(array: Array[String]) = this(array(0).toDouble, array(1).toDouble)
-
-  def this(s: String) = this(s.split(','))
-
-  def distanceSquared(other: DBSCANPoint) = {
+  def distanceSquared(other: DBSCANPoint): Double = {
     val dx = other.x - x
     val dy = other.y - y
-    dx * dx + dy * dy
+    (dx * dx) + (dy * dy)
   }
 
 }

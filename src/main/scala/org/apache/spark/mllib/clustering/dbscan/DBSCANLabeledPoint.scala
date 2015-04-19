@@ -16,26 +16,25 @@
  */
 package org.apache.spark.mllib.clustering.dbscan
 
-object MarginClassifier extends Enumeration {
+import org.apache.spark.mllib.linalg.Vector
 
-  type Class = Value
-  val Inner, Outer, Belonging, NotBelonging = Value
+object DBSCANLabeledPoint {
 
-  def classify(point: DBSCANPoint, margins: Margins): Class = margins match {
-    case (inner, main, outer) => {
-      if (inner.contains(point)) {
-        Belonging
-      } else if (main.contains(point)) {
-        Inner
-      } else if (outer.contains(point)) {
-        Outer
-      } else {
-        NotBelonging
-      }
-    }
+  val Unknown = 0
+
+  object Flag extends Enumeration {
+    type Flag = Value
+    val Border, Core, Noise, NotFlagged = Value
   }
-  def isInterior(classifier: Class) : Boolean = {
-    classifier == Inner || classifier == Belonging
-    
-  }
+
+}
+
+class DBSCANLabeledPoint(vector: Vector) extends DBSCANPoint(vector) {
+
+  def this(point: DBSCANPoint) = this(point.vector)
+
+  var flag = DBSCANLabeledPoint.Flag.NotFlagged
+  var cluster = DBSCANLabeledPoint.Unknown
+  var visited = false
+
 }

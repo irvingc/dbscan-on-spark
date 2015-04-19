@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.mllib.clustering.dbscan.another
+package org.apache.spark.mllib.clustering.dbscan
+
+import scala.collection.mutable.Queue
 
 import org.apache.spark.Logging
-import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.mllib.clustering.dbscan.another.DBSCANLabeledPoint.Flag
+import org.apache.spark.mllib.clustering.dbscan.DBSCANLabeledPoint.Flag
 import org.apache.spark.mllib.linalg.Vectors
-import scala.collection.mutable.Queue
 
 class LocalDBSCANNaive(eps: Double, minPoints: Int) extends Logging {
 
