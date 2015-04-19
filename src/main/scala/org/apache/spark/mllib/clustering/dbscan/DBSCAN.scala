@@ -72,7 +72,7 @@ class DBSCAN private (
     // find the best partitions for the data space
     val localPartitions = EvenSplitPartitioner
       .partition(maxPointsPerPartition, minimumRectangleSize)(minimumRectanglesWithCount)
-      
+
     logDebug("Found partitions: ")
     localPartitions.foreach(p => logDebug(p.toString))
 
@@ -181,15 +181,26 @@ class DBSCAN private (
     // de-duplicate and label merge points
     val labeledOuter =
       mergePoints.flatMapValues(partition => {
-        partition.foldLeft(Set[DBSCANLabeledPoint]()) {
+        partition.foldLeft(Map[DBSCANPoint, DBSCANLabeledPoint]()) {
           case (all, (partition, point)) =>
 
             if (point.flag != Flag.Noise) {
               point.cluster = clusterIds.value((partition, point.cluster))
             }
 
-            all + point
+            all.get(point) match {
+              case None => all + (point -> point)
+              case Some(prev) =>
+                // override previous entry unless new entry is noise
+                if (point.flag != Flag.Noise) {
+                  prev.flag = point.flag
+                  prev.cluster = point.cluster
+                }
+                all
+            }
+
         }
+          .values
       })
 
     val finalPartitions = localMargins.map({
@@ -230,18 +241,18 @@ class DBSCAN private (
       case ((seen, adjacencies), (partition, point)) =>
 
         // noise points are not relevant for adjacencies
-        if(point.flag == Flag.Noise) {
+        if (point.flag == Flag.Noise) {
           (seen, adjacencies)
         } else {
 
-        val clusterId = (partition, point.cluster)
+          val clusterId = (partition, point.cluster)
 
-        seen.get(point) match {
-          case None                => (seen + (point -> clusterId), adjacencies)
-          case Some(prevClusterId) => (seen, adjacencies + ((prevClusterId, clusterId)))
+          seen.get(point) match {
+            case None                => (seen + (point -> clusterId), adjacencies)
+            case Some(prevClusterId) => (seen, adjacencies + ((prevClusterId, clusterId)))
+          }
+
         }
-
-      }
     })
 
     adjacencies

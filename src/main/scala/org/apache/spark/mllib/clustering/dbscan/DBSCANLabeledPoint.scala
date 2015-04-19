@@ -36,5 +36,9 @@ class DBSCANLabeledPoint(vector: Vector) extends DBSCANPoint(vector) {
   var flag = DBSCANLabeledPoint.Flag.NotFlagged
   var cluster = DBSCANLabeledPoint.Unknown
   var visited = false
+  
+  override def toString(): String = {
+    s"$vector => $flag"
+  }
 
 }

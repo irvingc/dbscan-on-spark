@@ -35,27 +35,26 @@ class DBSCANSuite extends LocalDBSCANArcherySuite with MLlibTestSparkContext wit
 
     val model = DBSCAN(eps = 0.3F, minPoints = 10, maxPointsPerPartition = 250).train(parsedData)
 
-    val clustered = model.labeledPoints.map(p => (p, p.cluster)).collectAsMap()
+    val clustered = model.labeledPoints
+      .map(p => (p, p.cluster))
+      .collectAsMap()
+      .mapValues(x => corresponding(x))
 
     val expected = getExpectedData(dataFile).toMap
 
     clustered.size should equal(expected.size)
 
-    println(clustered.size)
-    println(expected.size)
-
     clustered.foreach {
       case (key, value) => {
         val t = expected(key)
-        val mapped = corresponding(value)
-        if (t != mapped) {
-          println(s"expected: $t but got $mapped for $key")
+        if (t != value) {
+          println(s"expected: $t but got $value for $key")
         }
 
       }
     }
 
-    // clustered should equal(expected)
+    clustered should equal(expected)
 
   }
 

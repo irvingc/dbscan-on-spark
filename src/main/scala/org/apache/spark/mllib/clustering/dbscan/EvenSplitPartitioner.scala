@@ -47,9 +47,9 @@ class EvenSplitPartitioner(
     val toPartition = List((boundingRectangle, pointsIn(boundingRectangle)))
     val partitioned = List[RectangleWithCount]()
 
-    logDebug("About to start partitioning")
+    logTrace("About to start partitioning")
     val partitions = partition(toPartition, partitioned, pointsIn)
-    logDebug("Done")
+    logTrace("Done")
 
     // remove empty partitions
     partitions.filter({ case (partition, count) => count > 0 })
