@@ -3,8 +3,11 @@
 ### Overview
 
 This is an implementation of the [DBSCAN clustering algorithm](http://en.wikipedia.org/wiki/DBSCAN) 
-on top of [Apache Spark](http://spark.apache.org/). It is based on the paper from He, Yaobin, et al.
+on top of [Apache Spark](http://spark.apache.org/). It is loosely based on the paper from He, Yaobin, et al.
 ["MR-DBSCAN: a scalable MapReduce-based DBSCAN algorithm for heavily skewed data"](http://www.researchgate.net/profile/Yaobin_He/publication/260523383_MR-DBSCAN_a_scalable_MapReduce-based_DBSCAN_algorithm_for_heavily_skewed_data/links/0046353a1763ee2bdf000000.pdf). 
+
+
+I have also created a [visual guide](http://www.irvingc.com/visualizing-dbscan) that explains how the algorithm works.
 
 ### Getting DBSCAN on Spark
 
@@ -55,14 +58,21 @@ object DBSCANSample {
     val conf = new SparkConf().setAppName("DBSCAN Sample")
     val sc = new SparkContext(conf)
 
-    val data = sc.textFile(args(0))
+    val data = sc.textFile(src)
 
     val parsedData = data.map(s => Vectors.dense(s.split(',').map(_.toDouble))).cache()
 
-    val labeled = DBSCAN.fit(eps = 0.3F, minPoints = 10, data = parsedData)
+    log.info(s"EPS: $eps minPoints: $minPoints")
 
-    labeled.saveAsTextFile(args(1))
+    val model = DBSCAN(
+      eps = eps,
+      minPoints = minPoints,
+      maxPointsPerPartition = maxPointsPerPartition)
+      .train(parsedData)
 
+    model.labeledPoints.map(p =>  s"${p.x},${p.y},${p.cluster}").saveAsTextFile(dest)
+
+    sc.stop()
   }
 }
 ```
