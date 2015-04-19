@@ -23,12 +23,13 @@ import org.apache.spark.mllib.linalg.Vector
 import org.apache.spark.rdd.RDD
 
 /**
- * Top level method for calling DBSCAN clustering
+ * Top level method for calling DBSCAN
  */
 object DBSCAN {
 
   /**
-   * Train a DBSCAN Model with the given set of parameters
+   * Train a DBSCAN Model using the given set of parameters
+   *
    * @param data training points stored as `RDD[Vector]`
    * only the first two points of the vector are taken into consideration
    * @param eps the maximum distance between two points for them to be considered as part
@@ -49,12 +50,12 @@ object DBSCAN {
 }
 
 /**
- * An implementation of a parallel DBSCAN clustering. The algorithm will split the data space
+ * A parallel implementation of DBSCAN clustering. The implementation will split the data space
  * into a number of partitions, making a best effort to keep the number of points in each
  *  partition under `maxPointsPerPartition`. After partitioning, traditional DBSCAN
  *  clustering will be run in parallel for each partition and finally the results
  *  of each partition will be merged to identify global clusters.
- *  
+ *
  *  This is an iterative algorithm that will make multiple passes over the data,
  *  any given RDDs should be cached by the user.
  */
