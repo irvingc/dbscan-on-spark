@@ -18,7 +18,7 @@ package org.apache.spark.mllib.clustering.dbscan
 
 import scala.collection.mutable.Queue
 
-import org.apache.spark.Logging
+import org.apache.spark.internal.Logging
 import org.apache.spark.mllib.clustering.dbscan.DBSCANLabeledPoint.Flag
 
 import archery.Box

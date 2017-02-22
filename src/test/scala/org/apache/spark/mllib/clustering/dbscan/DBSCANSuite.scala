@@ -16,7 +16,7 @@
  */
 package org.apache.spark.mllib.clustering.dbscan
 
-import org.apache.spark.SparkContext.rddToPairRDDFunctions
+import org.apache.spark.rdd.PairRDDFunctions
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.mllib.util.MLlibTestSparkContext
 import org.scalatest.Matchers

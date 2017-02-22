@@ -33,7 +33,7 @@
 		<scala.version>2.10.4</scala.version>
 		<scala.binary.version>2.10</scala.binary.version>
 		<scalatest.version>2.2.1</scalatest.version>
-		<spark.version>1.6.1</spark.version>
+		<spark.version>2.1.0</spark.version>
 	</properties>
 
 	<repositories>
