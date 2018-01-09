@@ -8,10 +8,15 @@ on top of [Apache Spark](http://spark.apache.org/). It is loosely based on the p
 
 
 I have also created a [visual guide](http://www.irvingc.com/visualizing-dbscan) that explains how the algorithm works.
-
+### Current vesion of DBSCAN is dbscan-on-spark_2.10:0.2.0-SNAPSHOT
+Be aware that current version of DBSCAN in this repo  is  :
+	<groupId>com.irvingc.spark</groupId>
+	<artifactId>**dbscan-on-spark_2.10**</artifactId>
+	<version>**0.2.0-SNAPSHOT**</version>
+It is not present in any  official repository and to make it work, you need to build it yourself.
 ### Getting DBSCAN on Spark
 
-DBSCAN on Spark is published to [bintray](https://bintray.com/). If you use SBT you
+Version 0.1.0 of DBSCAN on Spark is published to [bintray](https://bintray.com/). If you use SBT you
 can include SBT in your application adding the following to your build.sbt:
 
 ```
@@ -19,6 +24,8 @@ resolvers += "bintray/irvingc" at "http://dl.bintray.com/irvingc/maven"
 
 libraryDependencies += "com.irvingc.spark" %% "dbscan" % "0.1.0"
 ```
+
+
 
 If you use Maven or Ivy you can use a similar resolver, but you just
 need to account for the scala version (the example is for Scala 2.10):
@@ -91,8 +98,3 @@ See the [LICENSE](LICENSE) file for details.
 ### Credits
 
 DBSCAN on Spark is maintained by Irving Cordova (irving@irvingc.com).
-
-
-
-
-
